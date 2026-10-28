@@ -90,7 +90,7 @@
                     <input type="number" id="countdown-minutes" min="0" max="59" value="0" placeholder="دقائق" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm w-1/2">
                 </div>
 
-                <!-- Active Timer Display Modal/Box -->
+                <!-- Active Timer Display Box -->
                 <div id="active-timer-box" class="hidden bg-slate-800 p-4 rounded-xl text-center mb-4 border border-cyan-500">
                     <p id="timer-status-text" class="text-sm text-cyan-400 mb-1">المذاكرة جارية الآن...</p>
                     <div id="timer-display" class="text-3xl font-black text-white mb-3">00:00:00</div>
@@ -134,7 +134,7 @@
         const db = getDatabase(app);
 
         let currentRoom = localStorage.getItem('study_room_code') || '';
-        let currentUserId = localStorage.getItem('study_user_id') || Math.random().toString(36.substring(2, 10));
+        let currentUserId = localStorage.getItem('study_user_id') || Math.random().toString(36).substring(2, 10);
         localStorage.setItem('study_user_id', currentUserId);
 
         let unsubscribeRTDB = null;
@@ -171,7 +171,7 @@
         };
 
         window.joinRoom = function() {
-            const code = document.getElementById('room-input'].value.trim().toUpperCase();
+            const code = document.getElementById('room-input').value.trim().toUpperCase();
             if (!code) {
                 alert('الرجاء إدخال رمز الغرفة');
                 return;
@@ -411,7 +411,7 @@
                         </div>
                     </div>
                     <!-- Progress Bar -->
-                    <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                    <div class="v-full bg-slate-800 h-3 rounded-full overflow-hidden">
                         <div class="bg-gradient-to-r from-cyan-500 to-indigo-500 h-full transition-all duration-500" style="width: ${percentage}%"></div>
                     </div>
                 `;
