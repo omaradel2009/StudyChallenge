@@ -47,12 +47,12 @@
                 <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 flex flex-col justify-between">
                     <div>
                         <h2 class="text-lg font-bold text-cyan-400 mb-1">🎯 الهدف الأسبوعي العام</h2>
-                        <p class="text-slate-400 text-xs mb-3">حدد عدد ساعات المذاكرة المستهدفة لهذا الأسبوع للجميع.</p>
+                        <p id="goal-desc" class="text-slate-400 text-xs mb-3">حدد عدد ساعات المذاكرة المستهدفة لهذا الأسبوع (للمنشئ فقط).</p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div id="goal-container" class="flex items-center gap-2">
                         <input type="number" id="weekly-goal-input" min="1" value="20" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white w-24 text-center font-bold">
                         <span class="text-sm text-slate-300">ساعة</span>
-                        <button onclick="updateGoal()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition">حفظ الهدف</button>
+                        <button id="save-goal-btn" onclick="updateGoal()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition">حفظ الهدف</button>
                     </div>
                 </div>
 
@@ -69,16 +69,35 @@
                 </div>
             </div>
 
-            <!-- Log Hours Section -->
+            <!-- Log Hours Section with Timer / Stopwatch -->
             <div id="log-section" class="hidden bg-slate-900/80 p-5 rounded-xl border border-indigo-500/30 mb-8">
-                <h3 class="text-md font-bold text-emerald-400 mb-3">⏱️ تسجيل ساعات المذاكرة المنجزة</h3>
-                <div class="flex flex-col sm:flex-row items-center gap-3">
-                    <select id="active-competitor-select" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm w-full sm:w-1/3">
+                <h3 class="text-md font-bold text-emerald-400 mb-3">⏱️ جلسة مذاكرة جديدة (مؤقت / توقيت)</h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                    <select id="active-competitor-select" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
                         <option value="">اختر اسمك...</option>
                     </select>
-                    <input type="number" id="hours-to-add" min="0.5" step="0.5" placeholder="عدد الساعات (مثال: 2)" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm w-full sm:w-1/3">
-                    <button onclick="logHours()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition w-full sm:w-auto">تسجيل الساعات</button>
+                    <input type="text" id="study-subject" placeholder="اسم المادة (اختياري)..." class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
+                    <select id="timer-mode" onchange="toggleTimerMode()" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
+                        <option value="stopwatch">وضع العداد المفتوح (انتهيت)</option>
+                        <option value="countdown">وضع المؤقت التنازلي المجدول</option>
+                    </select>
                 </div>
+
+                <!-- Countdown inputs (hidden by default) -->
+                <div id="countdown-settings" class="hidden flex items-center gap-3 mb-4">
+                    <input type="number" id="countdown-hours" min="0" value="1" placeholder="ساعات" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm w-1/2">
+                    <input type="number" id="countdown-minutes" min="0" max="59" value="0" placeholder="دقائق" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm w-1/2">
+                </div>
+
+                <!-- Active Timer Display Modal/Box -->
+                <div id="active-timer-box" class="hidden bg-slate-800 p-4 rounded-xl text-center mb-4 border border-cyan-500">
+                    <p id="timer-status-text" class="text-sm text-cyan-400 mb-1">المذاكرة جارية الآن...</p>
+                    <div id="timer-display" class="text-3xl font-black text-white mb-3">00:00:00</div>
+                    <button onclick="stopActiveTimer()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 py-2 rounded-lg text-sm transition">إنهاء وتسجيل الساعات</button>
+                </div>
+
+                <button id="start-session-btn" onclick="startStudySession()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition w-full">بدء جلسة المذاكرة 🚀</button>
             </div>
 
             <!-- Leaderboard Section -->
@@ -95,10 +114,10 @@
 
     </div>
 
-    <!-- Firebase SDKs (Compat / Modular) -->
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getDatabase, ref, set, get, update, onValue, child } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBPZi3wE4HLIC8hKO3THkyuk7kyfNmrB-E",
@@ -115,7 +134,12 @@
         const db = getDatabase(app);
 
         let currentRoom = localStorage.getItem('study_room_code') || '';
+        let currentUserId = localStorage.getItem('study_user_id') || Math.random().toString(36.substring(2, 10));
+        localStorage.setItem('study_user_id', currentUserId);
+
         let unsubscribeRTDB = null;
+        let activeTimerInterval = null;
+        let timerSessionData = null;
 
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -135,9 +159,10 @@
             currentRoom = code;
             localStorage.setItem('study_room_code', currentRoom);
             
-            // Initialize room in RTDB
             set(ref(db, 'rooms/' + currentRoom), {
                 goal: 20,
+                creatorId: currentUserId,
+                goalLocked: false,
                 competitors: {}
             }).then(() => {
                 window.history.pushState({}, '', `?room=${currentRoom}`);
@@ -146,7 +171,7 @@
         };
 
         window.joinRoom = function() {
-            const code = document.getElementById('room-input').value.trim().toUpperCase();
+            const code = document.getElementById('room-input'].value.trim().toUpperCase();
             if (!code) {
                 alert('الرجاء إدخال رمز الغرفة');
                 return;
@@ -158,7 +183,7 @@
         };
 
         function connectToRoom(roomCode) {
-            document.getElementById('current-room-displayinnerText') || (document.getElementById('current-room-display').innerText = roomCode);
+            document.getElementById('current-room-display').innerText = roomCode;
             document.getElementById('challenge-container').classList.remove('hidden');
 
             if (unsubscribeRTDB) unsubscribeRTDB();
@@ -167,8 +192,7 @@
             unsubscribeRTDB = onValue(roomRef, (snapshot) => {
                 const data = snapshot.val();
                 if (!data) {
-                    // Initialize if empty
-                    set(roomRef, { goal: 20, competitors: {} });
+                    set(roomRef, { goal: 20, creatorId: currentUserId, goalLocked: false, competitors: {} });
                     return;
                 }
                 renderApp(data);
@@ -177,8 +201,16 @@
 
         window.updateGoal = function() {
             if (!currentRoom) return;
-            const newGoal = parseFloat(document.getElementById('weekly-goal-input').value) || 20;
-            update(ref(db, `rooms/${currentRoom}`), { goal: newGoal });
+            const roomRef = ref(db, `rooms/${currentRoom}`);
+            get(roomRef).then((snapshot) => {
+                const data = snapshot.val();
+                if (data.goalLocked) {
+                    alert('عذراً، تم قفل الهدف الأسبوعي ولا يمكن تعديله!');
+                    return;
+                }
+                const newGoal = parseFloat(document.getElementById('weekly-goal-input').value) || 20;
+                update(roomRef, { goal: newGoal, goalLocked: true, creatorId: data.creatorId || currentUserId });
+            });
         };
 
         window.addCompetitor = function() {
@@ -196,40 +228,131 @@
                     set(compRef, { hours: 0, joinedAt: Date.now() });
                 }
                 nameInput.value = '';
-                // Select automatically in dropdown
                 document.getElementById('active-competitor-select').value = name;
                 document.getElementById('log-section').classList.remove('hidden');
             });
         };
 
-        window.logHours = function() {
-            if (!currentRoom) return;
+        window.toggleTimerMode = function() {
+            const mode = document.getElementById('timer-mode').value;
+            const countdownSettings = document.getElementById('countdown-settings');
+            if (mode === 'countdown') {
+                countdownSettings.classList.remove('hidden');
+            } else {
+                countdownSettings.classList.add('hidden');
+            }
+        };
+
+        window.startStudySession = function() {
             const name = document.getElementById('active-competitor-select').value;
-            const hoursToAdd = parseFloat(document.getElementById('hours-to-add').value);
-
             if (!name) {
-                alert('الرجاء اختيار اسمك من القائمة');
-                return;
-            }
-            if (isNaN(hoursToAdd) || hoursToAdd <= 0) {
-                alert('الرجاء إدخال عدد ساعات صحيح');
+                alert('الرجاء اختيار اسمك من القائمة أولاً');
                 return;
             }
 
+            const mode = document.getElementById('timer-mode').value;
+            const subject = document.getElementById('study-subject').value.trim() || 'مذاكرة عامة';
+
+            document.getElementById('start-session-btn').classList.add('hidden');
+            document.getElementById('active-timer-box').classList.remove('hidden');
+
+            let startTime = Date.now();
+            let targetSeconds = 0;
+
+            if (mode === 'countdown') {
+                const h = parseInt(document.getElementById('countdown-hours').value) || 0;
+                const m = parseInt(document.getElementById('countdown-minutes').value) || 0;
+                targetSeconds = (h * 3600) + (m * 60);
+                if (targetSeconds <= 0) {
+                    alert('الرجاء إدخال وقت صحيح للمؤقت');
+                    resetTimerUI();
+                    return;
+                }
+            }
+
+            timerSessionData = { name, subject, mode, startTime, targetSeconds, elapsedSeconds: 0 };
+
+            activeTimerInterval = setInterval(() => {
+                const now = Date.now();
+                const diffSecs = Math.floor((now - timerSessionData.startTime) / 1000);
+
+                if (timerSessionData.mode === 'stopwatch') {
+                    timerSessionData.elapsedSeconds = diffSecs;
+                    document.getElementById('timer-display').innerText = formatTime(diffSecs);
+                } else {
+                    let remaining = timerSessionData.targetSeconds - diffSecs;
+                    if (remaining <= 0) {
+                        remaining = 0;
+                        document.getElementById('timer-display').innerText = "00:00:00";
+                        alert('🎉 انتهى وقت المؤقت بنجاح!');
+                        stopActiveTimer();
+                        return;
+                    }
+                    document.getElementById('timer-display').innerText = formatTime(remaining);
+                }
+            }, 1000);
+        };
+
+        window.stopActiveTimer = function() {
+            if (!timerSessionData) return;
+            clearInterval(activeTimerInterval);
+
+            let finalSeconds = 0;
+            if (timerSessionData.mode === 'stopwatch') {
+                finalSeconds = timerSessionData.elapsedSeconds;
+            } else {
+                finalSeconds = timerSessionData.targetSeconds;
+            }
+
+            const hoursEarned = parseFloat((finalSeconds / 3600).toFixed(2));
+            if (hoursEarned > 0) {
+                addHoursToDatabase(timerSessionData.name, hoursEarned);
+            }
+
+            resetTimerUI();
+            timerSessionData = null;
+        };
+
+        function resetTimerUI() {
+            if (activeTimerInterval) clearInterval(activeTimerInterval);
+            document.getElementById('active-timer-box').classList.add('hidden');
+            document.getElementById('start-session-btn').classList.remove('hidden');
+            document.getElementById('timer-display').innerText = "00:00:00";
+            document.getElementById('study-subject').value = '';
+        }
+
+        function formatTime(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function addHoursToDatabase(name, hoursToAdd) {
+            if (!currentRoom) return;
             const compRef = ref(db, `rooms/${currentRoom}/competitors/${name}`);
             get(compRef).then((snapshot) => {
                 if (snapshot.exists()) {
                     const currentHours = snapshot.val().hours || 0;
-                    const updatedHours = currentHours + hoursToAdd;
+                    const updatedHours = parseFloat((currentHours + hoursToAdd).toFixed(2));
                     update(compRef, { hours: updatedHours });
-                    document.getElementById('hours-to-add').value = '';
                 }
             });
-        };
+        }
 
         function renderApp(data) {
             const goal = data.goal || 20;
-            document.getElementById('weekly-goal-input').value = goal;
+            const goalInput = document.getElementById('weekly-goal-input');
+            goalInput.value = goal;
+
+            if (data.goalLocked) {
+                goalInput.disabled = true;
+                document.getElementById('save-goal-btn').classList.add('hidden');
+                document.getElementById('goal-desc').innerText = "تم قفل الهدف الأسبوعي من قِبل منشئ الغرفة.";
+            } else {
+                goalInput.disabled = false;
+                document.getElementById('save-goal-btn').classList.remove('hidden');
+            }
 
             const competitorsObj = data.competitors || {};
             const competitorsArr = Object.keys(competitorsObj).map(name => ({
@@ -238,10 +361,8 @@
                 joinedAt: competitorsObj[name].joinedAt || 0
             }));
 
-            // Sort competitors by hours descending, then joinedAt ascending
             competitorsArr.sort((a, b) => b.hours - a.hours || a.joinedAt - b.joinedAt);
 
-            // Populate dropdown
             const select = document.getElementById('active-competitor-select');
             const currentSelected = select.value;
             select.innerHTML = '<option value="">اختر اسمك...</option>';
@@ -256,7 +377,6 @@
                 document.getElementById('log-section').classList.remove('hidden');
             }
 
-            // Render Leaderboard
             const leaderboardList = document.getElementById('leaderboard-list');
             leaderboardList.innerHTML = '';
 
@@ -264,8 +384,6 @@
                 leaderboardList.innerHTML = `<p class="text-center text-slate-500 py-4">لا يوجد منافسين في هذه الغرفة بعد. انضم الآن وابدأ التحدي!</p>`;
                 return;
             }
-
-            let winnerFound = false;
 
             competitorsArr.forEach((c, index) => {
                 const percentage = Math.min(Math.round((c.hours / goal) * 100), 100);
