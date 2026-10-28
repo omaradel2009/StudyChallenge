@@ -69,13 +69,31 @@
                 </div>
             </div>
 
-            <!-- Creator Reset Section (Hidden by default, enabled only for creator when winner exists) -->
+            <!-- Creator Reset Section (Hidden by default) -->
             <div id="creator-reset-section" class="hidden bg-rose-950/30 border border-rose-500/40 p-4 rounded-xl mb-8 flex items-center justify-between">
                 <div>
                     <h4 class="text-rose-400 font-bold text-sm">👑 لوحة التحكم بالمنشئ</h4>
                     <p class="text-slate-400 text-xs">لقد حقق أحد المتنافسين الهدف! يمكنك الآن إنهاء التحدي وتصفير الساعات لبدء أسبوع جديد.</p>
                 </div>
                 <button id="btn-reset-challenge" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">إنهاء التحدي وتصفير الساعات</button>
+            </div>
+
+            <!-- Notification Banner Section (One-time alert message) -->
+            <div id="announcement-banner" class="hidden bg-indigo-950/40 border border-indigo-500/50 p-4 rounded-xl mb-8 flex items-center justify-between gap-4">
+                <div class="flex-1">
+                    <span id="announcement-author" class="text-xs font-bold text-indigo-400 block mb-1">المنبه:</span>
+                    <p id="announcement-text" class="text-sm text-white font-medium"></p>
+                </div>
+                <button id="btn-dismiss-announcement" class="bg-indigo-600/50 hover:bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg transition">تم الإطلاع</button>
+            </div>
+
+            <!-- Send Quick Notice Section -->
+            <div id="notice-section" class="hidden bg-slate-900/60 p-4 rounded-xl border border-slate-700 mb-8">
+                <h4 class="text-xs font-bold text-slate-400 mb-2">📢 إرسال رسالة تنبيه سريعة للمجموعة</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="notice-input" placeholder="اكتب رسالة قصيرة أو تنبيه..." class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm flex-1">
+                    <button id="btn-send-notice" class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold px-4 py-2 rounded-lg text-sm transition">إرسال التنبيه</button>
+                </div>
             </div>
 
             <!-- Log Hours Section with Timer / Stopwatch -->
@@ -146,6 +164,7 @@
         let currentUserId = localStorage.getItem('study_user_id') || Math.random().toString(36).substring(2, 10);
         localStorage.setItem('study_user_id', currentUserId);
 
+        let currentCompetitorName = '';
         let unsubscribeRTDB = null;
         let activeTimerInterval = null;
         let timerSessionData = null;
@@ -159,6 +178,8 @@
             document.getElementById('btn-start-session').addEventListener('click', startStudySession);
             document.getElementById('btn-stop-timer').addEventListener('click', stopActiveTimer);
             document.getElementById('btn-reset-challenge').addEventListener('click', resetChallengeSession);
+            document.getElementById('btn-send-notice').addEventListener('click', sendNotice);
+            document.getElementById('btn-dismiss-announcement').addEventListener('click', dismissAnnouncement);
 
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
@@ -181,7 +202,8 @@
                 goal: 20,
                 creatorId: currentUserId,
                 goalLocked: false,
-                competitors: {}
+                competitors: {},
+                announcement: null
             }).then(() => {
                 window.history.pushState({}, '', `?room=${currentRoom}`);
                 connectToRoom(currentRoom);
@@ -210,7 +232,7 @@
             unsubscribeRTDB = onValue(roomRef, (snapshot) => {
                 const data = snapshot.val();
                 if (!data) {
-                    set(roomRef, { goal: 20, creatorId: currentUserId, goalLocked: false, competitors: {} });
+                    set(roomRef, { goal: 20, creatorId: currentUserId, goalLocked: false, competitors: {}, announcement: null });
                     return;
                 }
                 renderApp(data);
@@ -239,6 +261,7 @@
                 alert('الرجاء إدخال اسمك');
                 return;
             }
+            currentCompetitorName = name;
 
             const compRef = ref(db, `rooms/${currentRoom}/competitors/${name}`);
             get(compRef).then((snapshot) => {
@@ -248,7 +271,47 @@
                 nameInput.value = '';
                 document.getElementById('active-competitor-select').value = name;
                 document.getElementById('log-section').classList.remove('hidden');
+                document.getElementById('notice-section').classList.remove('hidden');
             });
+        }
+
+        function sendNotice() {
+            if (!currentRoom) return;
+            const name = document.getElementById('active-competitor-select').value || currentCompetitorName;
+            const textInput = document.getElementById('notice-input');
+            const text = textInput.value.trim();
+
+            if (!name) {
+                alert('الرجاء تحديد اسمك أولاً لتتمكن من إرسال رسالة.');
+                return;
+            }
+            if (!text) {
+                alert('الرجاء كتابة محتوى الرسالة.');
+                return;
+            }
+
+            const noticeId = 'n_' + Date.now();
+            const roomRef = ref(db, `rooms/${currentRoom}`);
+            update(roomRef, {
+                announcement: {
+                    id: noticeId,
+                    senderName: name,
+                    senderUserId: currentUserId,
+                    text: text
+                }
+            }).then(() => {
+                textInput.value = '';
+            });
+        }
+
+        function dismissAnnouncement() {
+            const banner = document.getElementById('announcement-banner');
+            banner.classList.add('hidden');
+            // Store last dismissed notice id in localStorage so it won't pop up again for this user
+            const currentAnnId = banner.getAttribute('data-ann-id');
+            if (currentAnnId) {
+                localStorage.setItem('dismissed_ann_' + currentRoom, currentAnnId);
+            }
         }
 
         function resetChallengeSession() {
@@ -258,7 +321,6 @@
                 if (!snapshot.exists()) return;
                 const data = snapshot.val();
                 
-                // Verify Creator & Winner Existence
                 if (data.creatorId !== currentUserId) {
                     alert('هذا الإجراء متاح لمنشئ الغرفة فقط.');
                     return;
@@ -273,7 +335,6 @@
                     return;
                 }
 
-                // Reset competitors hours and unlock goal for a new week
                 const resetCompetitors = {};
                 Object.keys(competitorsObj).forEach(name => {
                     resetCompetitors[name] = {
@@ -284,9 +345,11 @@
 
                 update(roomRef, {
                     goalLocked: false,
-                    competitors: resetCompetitors
+                    competitors: resetCompetitors,
+                    announcement: null
                 }).then(() => {
                     window.hasCelebrated = false;
+                    localStorage.removeItem('dismissed_ann_' + currentRoom);
                     alert('🔄 تم تصفير الغرفة وبدء أسبوع جديد بنجاح!');
                 });
             });
@@ -308,6 +371,7 @@
                 alert('الرجاء اختيار اسمك من القائمة أولاً');
                 return;
             }
+            currentCompetitorName = name;
 
             const mode = document.getElementById('timer-mode').value;
             const subject = document.getElementById('study-subject').value.trim() || 'مذاكرة عامة';
@@ -356,11 +420,15 @@
             if (!timerSessionData) return;
             clearInterval(activeTimerInterval);
 
+            const now = Date.now();
+            const actualElapsedSecs = Math.floor((now - timerSessionData.startTime) / 1000);
+
             let finalSeconds = 0;
             if (timerSessionData.mode === 'stopwatch') {
                 finalSeconds = timerSessionData.elapsedSeconds;
             } else {
-                finalSeconds = timerSessionData.targetSeconds;
+                // Countdown: elapsed time cannot exceed target seconds
+                finalSeconds = Math.min(actualElapsedSecs, timerSessionData.targetSeconds);
             }
 
             const hoursEarned = parseFloat((finalSeconds / 3600).toFixed(2));
@@ -413,6 +481,24 @@
                 document.getElementById('btn-save-goal').classList.remove('hidden');
             }
 
+            // Handle announcement banner logic (Show once per unique announcement id for others)
+            const ann = data.announcement;
+            const banner = document.getElementById('announcement-banner');
+            if (ann && ann.id) {
+                const dismissedId = localStorage.getItem('dismissed_ann_' + currentRoom);
+                // Show if it's not written by current user AND not dismissed yet
+                if (ann.senderUserId !== currentUserId && dismissedId !== ann.id) {
+                    document.getElementById('announcement-author').innerText = `تنبيـه من: ${ann.senderName}`;
+                    document.getElementById('announcement-text').innerText = ann.text;
+                    banner.setAttribute('data-ann-id', ann.id);
+                    banner.classList.remove('hidden');
+                } else {
+                    banner.classList.add('hidden');
+                }
+            } else {
+                banner.classList.add('hidden');
+            }
+
             const competitorsObj = data.competitors || {};
             const competitorsArr = Object.keys(competitorsObj).map(name => ({
                 name,
@@ -420,10 +506,7 @@
                 joinedAt: competitorsObj[name].joinedAt || 0
             }));
 
-            // Check if there is a winner who reached the goal first
             const hasWinner = competitorsArr.some(c => c.hours >= goal);
-
-            // Show reset button only if current user is creator AND a winner exists
             const isCreator = data.creatorId === currentUserId;
             const resetSection = document.getElementById('creator-reset-section');
             if (isCreator && hasWinner) {
@@ -432,17 +515,15 @@
                 resetSection.classList.add('hidden');
             }
 
-            // Sorting: Once a winner is established, sort strictly by who reached it first (joinedAt or stable order), or keep normal sort
-            // Request: "الذي يصل إلى الهدف يفوز وانتهى الأمر ولا يتغير" -> Sort maintaining winner stability
             competitorsArr.sort((a, b) => {
                 const aWon = a.hours >= goal ? 1 : 0;
                 const bWon = b.hours >= goal ? 1 : 0;
-                if (aWon !== bWon) return bWon - aWon; // Winners on top
+                if (aWon !== bWon) return bWon - aWon;
                 return b.hours - a.hours || a.joinedAt - b.joinedAt;
             });
 
             const select = document.getElementById('active-competitor-select');
-            const currentSelected = select.value;
+            const currentSelected = select.value || currentCompetitorName;
             select.innerHTML = '<option value="">اختر اسمك...</option>';
             competitorsArr.forEach(c => {
                 const opt = document.createElement('option');
@@ -453,6 +534,7 @@
             select.value = currentSelected;
             if (competitorsArr.length > 0) {
                 document.getElementById('log-section').classList.remove('hidden');
+                document.getElementById('notice-section').classList.remove('hidden');
             }
 
             const leaderboardList = document.getElementById('leaderboard-list');
