@@ -78,10 +78,10 @@
                 <button id="btn-reset-challenge" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">إنهاء التحدي وتصفير الساعات</button>
             </div>
 
-            <!-- Notification Banner Section (One-time alert message) -->
+            <!-- Notification Banner Section (Auto disappears after 30s) -->
             <div id="announcement-banner" class="hidden bg-indigo-950/40 border border-indigo-500/50 p-4 rounded-xl mb-8 flex items-center justify-between gap-4">
                 <div class="flex-1">
-                    <span id="announcement-author" class="text-xs font-bold text-indigo-400 block mb-1">المنبه:</span>
+                    <span id="announcement-author" class="text-xs font-bold text-indigo-400 block mb-1">تنبيـه من:</span>
                     <p id="announcement-text" class="text-sm text-white font-medium"></p>
                 </div>
                 <button id="btn-dismiss-announcement" class="bg-indigo-600/50 hover:bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg transition">تم الإطلاع</button>
@@ -144,7 +144,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+        import { getDatabase, ref, set, get, update, onValue, push } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBPZi3wE4HLIC8hKO3THkyuk7kyfNmrB-E",
@@ -169,6 +169,11 @@
         let activeTimerInterval = null;
         let timerSessionData = null;
 
+        // Announcements Queue & Timing State
+        let announcementQueue = [];
+        let activeAnnouncementTimer = null;
+        let isBannerShowing = false;
+
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('btn-create-room').addEventListener('click', createRoom);
             document.getElementById('btn-join-room').addEventListener('click', joinRoom);
@@ -179,7 +184,11 @@
             document.getElementById('btn-stop-timer').addEventListener('click', stopActiveTimer);
             document.getElementById('btn-reset-challenge').addEventListener('click', resetChallengeSession);
             document.getElementById('btn-send-notice').addEventListener('click', sendNotice);
-            document.getElementById('btn-dismiss-announcement').addEventListener('click', dismissAnnouncement);
+            document.getElementById('btn-dismiss-announcement').addEventListener('click', () => {
+                const banner = document.getElementById('announcement-banner');
+                const currentId = banner.getAttribute('data-current-ann-id');
+                if (currentId) dismissCurrentAnnouncement(currentId);
+            });
 
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
@@ -203,7 +212,7 @@
                 creatorId: currentUserId,
                 goalLocked: false,
                 competitors: {},
-                announcement: null
+                announcements: null
             }).then(() => {
                 window.history.pushState({}, '', `?room=${currentRoom}`);
                 connectToRoom(currentRoom);
@@ -232,7 +241,7 @@
             unsubscribeRTDB = onValue(roomRef, (snapshot) => {
                 const data = snapshot.val();
                 if (!data) {
-                    set(roomRef, { goal: 20, creatorId: currentUserId, goalLocked: false, competitors: {}, announcement: null });
+                    set(roomRef, { goal: 20, creatorId: currentUserId, goalLocked: false, competitors: {}, announcements: null });
                     return;
                 }
                 renderApp(data);
@@ -290,28 +299,84 @@
                 return;
             }
 
-            const noticeId = 'n_' + Date.now();
-            const roomRef = ref(db, `rooms/${currentRoom}`);
-            update(roomRef, {
-                announcement: {
-                    id: noticeId,
-                    senderName: name,
-                    senderUserId: currentUserId,
-                    text: text
-                }
+            const announcementsRef = ref(db, `rooms/${currentRoom}/announcements`);
+            push(announcementsRef, {
+                senderName: name,
+                senderUserId: currentUserId,
+                text: text,
+                timestamp: Date.now()
             }).then(() => {
                 textInput.value = '';
             });
         }
 
-        function dismissAnnouncement() {
-            const banner = document.getElementById('announcement-banner');
-            banner.classList.add('hidden');
-            // Store last dismissed notice id in localStorage so it won't pop up again for this user
-            const currentAnnId = banner.getAttribute('data-ann-id');
-            if (currentAnnId) {
-                localStorage.setItem('dismissed_ann_' + currentRoom, currentAnnId);
+        // Announcement Queue & 30-second Auto-Dismiss Logic
+        function handleAnnouncements(announcementsObj) {
+            if (!announcementsObj) {
+                hideBanner();
+                return;
             }
+
+            const seenList = JSON.parse(localStorage.getItem('seen_anns_' + currentRoom) || '[]');
+            
+            // Convert announcements object to sorted array by timestamp
+            const arr = Object.keys(announcementsObj).map(key => ({
+                id: key,
+                ...announcementsObj[key]
+            })).sort((a, b) => a.timestamp - b.timestamp);
+
+            // Filter out messages written by current user AND already seen messages
+            announcementQueue = arr.filter(ann => ann.senderUserId !== currentUserId && !seenList.includes(ann.id));
+
+            if (announcementQueue.length > 0 && !isBannerShowing) {
+                showNextAnnouncement();
+            }
+        }
+
+        function showNextAnnouncement() {
+            if (announcementQueue.length === 0) {
+                hideBanner();
+                return;
+            }
+
+            const currentAnn = announcementQueue.shift();
+            isBannerShowing = true;
+
+            document.getElementById('announcement-author').innerText = `تنبيـه من: ${currentAnn.senderName}`;
+            document.getElementById('announcement-text').innerText = currentAnn.text;
+            
+            const banner = document.getElementById('announcement-banner');
+            banner.setAttribute('data-current-ann-id', currentAnn.id);
+            banner.classList.remove('hidden');
+
+            // Clear any existing timer and auto-dismiss after 30 seconds (half a minute)
+            if (activeAnnouncementTimer) clearTimeout(activeAnnouncementTimer);
+            activeAnnouncementTimer = setTimeout(() => {
+                dismissCurrentAnnouncement(currentAnn.id);
+            }, 30000);
+        }
+
+        function dismissCurrentAnnouncement(annId) {
+            if (activeAnnouncementTimer) clearTimeout(activeAnnouncementTimer);
+            
+            // Mark as permanently seen in localStorage
+            const seenList = JSON.parse(localStorage.getItem('seen_anns_' + currentRoom) || '[]');
+            if (!seenList.includes(annId)) {
+                seenList.push(annId);
+                localStorage.setItem('seen_anns_' + currentRoom, JSON.stringify(seenList));
+            }
+
+            hideBanner();
+            isBannerShowing = false;
+
+            // If there are more unseen messages in queue, show the next one after a brief moment
+            if (announcementQueue.length > 0) {
+                setTimeout(showNextAnnouncement, 500);
+            }
+        }
+
+        function hideBanner() {
+            document.getElementById('announcement-banner').classList.add('hidden');
         }
 
         function resetChallengeSession() {
@@ -346,10 +411,10 @@
                 update(roomRef, {
                     goalLocked: false,
                     competitors: resetCompetitors,
-                    announcement: null
+                    announcements: null
                 }).then(() => {
                     window.hasCelebrated = false;
-                    localStorage.removeItem('dismissed_ann_' + currentRoom);
+                    localStorage.removeItem('seen_anns_' + currentRoom);
                     alert('🔄 تم تصفير الغرفة وبدء أسبوع جديد بنجاح!');
                 });
             });
@@ -427,7 +492,6 @@
             if (timerSessionData.mode === 'stopwatch') {
                 finalSeconds = timerSessionData.elapsedSeconds;
             } else {
-                // Countdown: elapsed time cannot exceed target seconds
                 finalSeconds = Math.min(actualElapsedSecs, timerSessionData.targetSeconds);
             }
 
@@ -481,23 +545,8 @@
                 document.getElementById('btn-save-goal').classList.remove('hidden');
             }
 
-            // Handle announcement banner logic (Show once per unique announcement id for others)
-            const ann = data.announcement;
-            const banner = document.getElementById('announcement-banner');
-            if (ann && ann.id) {
-                const dismissedId = localStorage.getItem('dismissed_ann_' + currentRoom);
-                // Show if it's not written by current user AND not dismissed yet
-                if (ann.senderUserId !== currentUserId && dismissedId !== ann.id) {
-                    document.getElementById('announcement-author').innerText = `تنبيـه من: ${ann.senderName}`;
-                    document.getElementById('announcement-text').innerText = ann.text;
-                    banner.setAttribute('data-ann-id', ann.id);
-                    banner.classList.remove('hidden');
-                } else {
-                    banner.classList.add('hidden');
-                }
-            } else {
-                banner.classList.add('hidden');
-            }
+            // Process announcements queue
+            handleAnnouncements(data.announcements);
 
             const competitorsObj = data.competitors || {};
             const competitorsArr = Object.keys(competitorsObj).map(name => ({
