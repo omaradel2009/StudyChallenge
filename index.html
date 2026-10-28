@@ -33,8 +33,8 @@
             </div>
             <div class="flex items-center gap-2 w-full sm:w-auto">
                 <input type="text" id="room-input" placeholder="أدخل رمز الغرفة..." class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400 flex-1 sm:w-40">
-                <button onclick="joinRoom()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">انضمام</button>
-                <button onclick="createRoom()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">غرفة جديدة</button>
+                <button id="btn-join-room" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">انضمام</button>
+                <button id="btn-create-room" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">غرفة جديدة</button>
             </div>
         </div>
 
@@ -52,7 +52,7 @@
                     <div id="goal-container" class="flex items-center gap-2">
                         <input type="number" id="weekly-goal-input" min="1" value="20" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white w-24 text-center font-bold">
                         <span class="text-sm text-slate-300">ساعة</span>
-                        <button id="save-goal-btn" onclick="updateGoal()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition">حفظ الهدف</button>
+                        <button id="btn-save-goal" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition">حفظ الهدف</button>
                     </div>
                 </div>
 
@@ -64,7 +64,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <input type="text" id="competitor-name" placeholder="اسمك الكريم..." class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white flex-1 text-sm">
-                        <button onclick="addCompetitor()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">انضم للتحدي</button>
+                        <button id="btn-add-competitor" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">انضم للتحدي</button>
                     </div>
                 </div>
             </div>
@@ -78,7 +78,7 @@
                         <option value="">اختر اسمك...</option>
                     </select>
                     <input type="text" id="study-subject" placeholder="اسم المادة (اختياري)..." class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
-                    <select id="timer-mode" onchange="toggleTimerMode()" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
+                    <select id="timer-mode" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
                         <option value="stopwatch">وضع العداد المفتوح (انتهيت)</option>
                         <option value="countdown">وضع المؤقت التنازلي المجدول</option>
                     </select>
@@ -94,10 +94,10 @@
                 <div id="active-timer-box" class="hidden bg-slate-800 p-4 rounded-xl text-center mb-4 border border-cyan-500">
                     <p id="timer-status-text" class="text-sm text-cyan-400 mb-1">المذاكرة جارية الآن...</p>
                     <div id="timer-display" class="text-3xl font-black text-white mb-3">00:00:00</div>
-                    <button onclick="stopActiveTimer()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 py-2 rounded-lg text-sm transition">إنهاء وتسجيل الساعات</button>
+                    <button id="btn-stop-timer" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 py-2 rounded-lg text-sm transition">إنهاء وتسجيل الساعات</button>
                 </div>
 
-                <button id="start-session-btn" onclick="startStudySession()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition w-full">بدء جلسة المذاكرة 🚀</button>
+                <button id="btn-start-session" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition w-full">بدء جلسة المذاكرة 🚀</button>
             </div>
 
             <!-- Leaderboard Section -->
@@ -106,7 +106,7 @@
                     🏆 لوحة الصدارة الحية
                 </h3>
                 <div id="leaderboard-list" class="space-y-4">
-                    <!-- Dynamic Leaderboard Items will be inserted here -->
+                    <!-- Dynamic Leaderboard Items -->
                 </div>
             </div>
 
@@ -141,7 +141,16 @@
         let activeTimerInterval = null;
         let timerSessionData = null;
 
-        window.onload = function() {
+        // --- Event Listeners Setup ---
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById('btn-create-room').addEventListener('click', createRoom);
+            document.getElementById('btn-join-room').addEventListener('click', joinRoom);
+            document.getElementById('btn-save-goal').addEventListener('click', updateGoal);
+            document.getElementById('btn-add-competitor').addEventListener('click', addCompetitor);
+            document.getElementById('timer-mode').addEventListener('change', toggleTimerMode);
+            document.getElementById('btn-start-session').addEventListener('click', startStudySession);
+            document.getElementById('btn-stop-timer').addEventListener('click', stopActiveTimer);
+
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) {
@@ -152,9 +161,9 @@
                 document.getElementById('room-input').value = currentRoom;
                 connectToRoom(currentRoom);
             }
-        };
+        });
 
-        window.createRoom = function() {
+        function createRoom() {
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
             currentRoom = code;
             localStorage.setItem('study_room_code', currentRoom);
@@ -168,9 +177,9 @@
                 window.history.pushState({}, '', `?room=${currentRoom}`);
                 connectToRoom(currentRoom);
             });
-        };
+        }
 
-        window.joinRoom = function() {
+        function joinRoom() {
             const code = document.getElementById('room-input').value.trim().toUpperCase();
             if (!code) {
                 alert('الرجاء إدخال رمز الغرفة');
@@ -180,7 +189,7 @@
             localStorage.setItem('study_room_code', currentRoom);
             window.history.pushState({}, '', `?room=${currentRoom}`);
             connectToRoom(currentRoom);
-        };
+        }
 
         function connectToRoom(roomCode) {
             document.getElementById('current-room-display').innerText = roomCode;
@@ -199,21 +208,21 @@
             });
         }
 
-        window.updateGoal = function() {
+        function updateGoal() {
             if (!currentRoom) return;
             const roomRef = ref(db, `rooms/${currentRoom}`);
             get(roomRef).then((snapshot) => {
                 const data = snapshot.val();
-                if (data.goalLocked) {
+                if (data && data.goalLocked) {
                     alert('عذراً، تم قفل الهدف الأسبوعي ولا يمكن تعديله!');
                     return;
                 }
                 const newGoal = parseFloat(document.getElementById('weekly-goal-input').value) || 20;
-                update(roomRef, { goal: newGoal, goalLocked: true, creatorId: data.creatorId || currentUserId });
+                update(roomRef, { goal: newGoal, goalLocked: true, creatorId: (data && data.creatorId) || currentUserId });
             });
-        };
+        }
 
-        window.addCompetitor = function() {
+        function addCompetitor() {
             if (!currentRoom) return;
             const nameInput = document.getElementById('competitor-name');
             const name = nameInput.value.trim();
@@ -231,9 +240,9 @@
                 document.getElementById('active-competitor-select').value = name;
                 document.getElementById('log-section').classList.remove('hidden');
             });
-        };
+        }
 
-        window.toggleTimerMode = function() {
+        function toggleTimerMode() {
             const mode = document.getElementById('timer-mode').value;
             const countdownSettings = document.getElementById('countdown-settings');
             if (mode === 'countdown') {
@@ -241,9 +250,9 @@
             } else {
                 countdownSettings.classList.add('hidden');
             }
-        };
+        }
 
-        window.startStudySession = function() {
+        function startStudySession() {
             const name = document.getElementById('active-competitor-select').value;
             if (!name) {
                 alert('الرجاء اختيار اسمك من القائمة أولاً');
@@ -253,7 +262,7 @@
             const mode = document.getElementById('timer-mode').value;
             const subject = document.getElementById('study-subject').value.trim() || 'مذاكرة عامة';
 
-            document.getElementById('start-session-btn').classList.add('hidden');
+            document.getElementById('btn-start-session').classList.add('hidden');
             document.getElementById('active-timer-box').classList.remove('hidden');
 
             let startTime = Date.now();
@@ -291,9 +300,9 @@
                     document.getElementById('timer-display').innerText = formatTime(remaining);
                 }
             }, 1000);
-        };
+        }
 
-        window.stopActiveTimer = function() {
+        function stopActiveTimer() {
             if (!timerSessionData) return;
             clearInterval(activeTimerInterval);
 
@@ -311,12 +320,12 @@
 
             resetTimerUI();
             timerSessionData = null;
-        };
+        }
 
         function resetTimerUI() {
             if (activeTimerInterval) clearInterval(activeTimerInterval);
             document.getElementById('active-timer-box').classList.add('hidden');
-            document.getElementById('start-session-btn').classList.remove('hidden');
+            document.getElementById('btn-start-session').classList.remove('hidden');
             document.getElementById('timer-display').innerText = "00:00:00";
             document.getElementById('study-subject').value = '';
         }
@@ -347,11 +356,11 @@
 
             if (data.goalLocked) {
                 goalInput.disabled = true;
-                document.getElementById('save-goal-btn').classList.add('hidden');
+                document.getElementById('btn-save-goal').classList.add('hidden');
                 document.getElementById('goal-desc').innerText = "تم قفل الهدف الأسبوعي من قِبل منشئ الغرفة.";
             } else {
                 goalInput.disabled = false;
-                document.getElementById('save-goal-btn').classList.remove('hidden');
+                document.getElementById('btn-save-goal').classList.remove('hidden');
             }
 
             const competitorsObj = data.competitors || {};
@@ -411,7 +420,7 @@
                         </div>
                     </div>
                     <!-- Progress Bar -->
-                    <div class="v-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                    <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
                         <div class="bg-gradient-to-r from-cyan-500 to-indigo-500 h-full transition-all duration-500" style="width: ${percentage}%"></div>
                     </div>
                 `;
