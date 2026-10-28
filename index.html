@@ -69,6 +69,15 @@
                 </div>
             </div>
 
+            <!-- Creator Reset Section (Hidden by default, enabled only for creator when winner exists) -->
+            <div id="creator-reset-section" class="hidden bg-rose-950/30 border border-rose-500/40 p-4 rounded-xl mb-8 flex items-center justify-between">
+                <div>
+                    <h4 class="text-rose-400 font-bold text-sm">👑 لوحة التحكم بالمنشئ</h4>
+                    <p class="text-slate-400 text-xs">لقد حقق أحد المتنافسين الهدف! يمكنك الآن إنهاء التحدي وتصفير الساعات لبدء أسبوع جديد.</p>
+                </div>
+                <button id="btn-reset-challenge" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">إنهاء التحدي وتصفير الساعات</button>
+            </div>
+
             <!-- Log Hours Section with Timer / Stopwatch -->
             <div id="log-section" class="hidden bg-slate-900/80 p-5 rounded-xl border border-indigo-500/30 mb-8">
                 <h3 class="text-md font-bold text-emerald-400 mb-3">⏱️ جلسة مذاكرة جديدة (مؤقت / توقيت)</h3>
@@ -141,7 +150,6 @@
         let activeTimerInterval = null;
         let timerSessionData = null;
 
-        // --- Event Listeners Setup ---
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('btn-create-room').addEventListener('click', createRoom);
             document.getElementById('btn-join-room').addEventListener('click', joinRoom);
@@ -150,6 +158,7 @@
             document.getElementById('timer-mode').addEventListener('change', toggleTimerMode);
             document.getElementById('btn-start-session').addEventListener('click', startStudySession);
             document.getElementById('btn-stop-timer').addEventListener('click', stopActiveTimer);
+            document.getElementById('btn-reset-challenge').addEventListener('click', resetChallengeSession);
 
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
@@ -239,6 +248,47 @@
                 nameInput.value = '';
                 document.getElementById('active-competitor-select').value = name;
                 document.getElementById('log-section').classList.remove('hidden');
+            });
+        }
+
+        function resetChallengeSession() {
+            if (!currentRoom) return;
+            const roomRef = ref(db, `rooms/${currentRoom}`);
+            get(roomRef).then((snapshot) => {
+                if (!snapshot.exists()) return;
+                const data = snapshot.val();
+                
+                // Verify Creator & Winner Existence
+                if (data.creatorId !== currentUserId) {
+                    alert('هذا الإجراء متاح لمنشئ الغرفة فقط.');
+                    return;
+                }
+
+                const competitorsObj = data.competitors || {};
+                const goal = data.goal || 20;
+                const hasWinner = Object.values(competitorsObj).some(c => (c.hours || 0) >= goal);
+
+                if (!hasWinner) {
+                    alert('لا يمكن تصفير الغرفة لعدم وصول أي شخص للهدف بعد!');
+                    return;
+                }
+
+                // Reset competitors hours and unlock goal for a new week
+                const resetCompetitors = {};
+                Object.keys(competitorsObj).forEach(name => {
+                    resetCompetitors[name] = {
+                        hours: 0,
+                        joinedAt: competitorsObj[name].joinedAt || Date.now()
+                    };
+                });
+
+                update(roomRef, {
+                    goalLocked: false,
+                    competitors: resetCompetitors
+                }).then(() => {
+                    window.hasCelebrated = false;
+                    alert('🔄 تم تصفير الغرفة وبدء أسبوع جديد بنجاح!');
+                });
             });
         }
 
@@ -370,7 +420,26 @@
                 joinedAt: competitorsObj[name].joinedAt || 0
             }));
 
-            competitorsArr.sort((a, b) => b.hours - a.hours || a.joinedAt - b.joinedAt);
+            // Check if there is a winner who reached the goal first
+            const hasWinner = competitorsArr.some(c => c.hours >= goal);
+
+            // Show reset button only if current user is creator AND a winner exists
+            const isCreator = data.creatorId === currentUserId;
+            const resetSection = document.getElementById('creator-reset-section');
+            if (isCreator && hasWinner) {
+                resetSection.classList.remove('hidden');
+            } else {
+                resetSection.classList.add('hidden');
+            }
+
+            // Sorting: Once a winner is established, sort strictly by who reached it first (joinedAt or stable order), or keep normal sort
+            // Request: "الذي يصل إلى الهدف يفوز وانتهى الأمر ولا يتغير" -> Sort maintaining winner stability
+            competitorsArr.sort((a, b) => {
+                const aWon = a.hours >= goal ? 1 : 0;
+                const bWon = b.hours >= goal ? 1 : 0;
+                if (aWon !== bWon) return bWon - aWon; // Winners on top
+                return b.hours - a.hours || a.joinedAt - b.joinedAt;
+            });
 
             const select = document.getElementById('active-competitor-select');
             const currentSelected = select.value;
