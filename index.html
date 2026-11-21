@@ -42,7 +42,7 @@
         <div id="challenge-container" class="hidden">
             
             <!-- Goal & Join Form -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <!-- Goal Card -->
                 <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 flex flex-col justify-between">
                     <div>
@@ -67,6 +67,18 @@
                         <button id="btn-add-competitor" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">انضم للتحدي</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Creator Past-Hours Toggle (Visible to Room Creator) -->
+            <div id="creator-past-hours-box" class="hidden bg-slate-900/70 p-4 rounded-xl border border-amber-500/30 mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <h4 class="text-amber-400 font-bold text-sm">⚙️ إعداد الساعات السابقة للمنشئ</h4>
+                    <p class="text-slate-400 text-xs">السماح للمنافسين بإضافة ساعات ذاكروها مسبقاً (مفعّل افتراضياً).</p>
+                </div>
+                <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="toggle-past-hours" checked class="w-4 h-4 accent-amber-500 rounded">
+                    <span id="past-hours-badge" class="text-xs font-bold text-emerald-400">مفعّل</span>
+                </label>
             </div>
 
             <!-- Creator Reset Section (Hidden by default) -->
@@ -96,35 +108,49 @@
                 </div>
             </div>
 
-            <!-- Log Hours Section with Timer / Stopwatch -->
-            <div id="log-section" class="hidden bg-slate-900/80 p-5 rounded-xl border border-indigo-500/30 mb-8">
-                <h3 class="text-md font-bold text-emerald-400 mb-3">⏱️ جلسة مذاكرة جديدة (مؤقت / توقيت)</h3>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                    <select id="active-competitor-select" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
-                        <option value="">اختر اسمك...</option>
-                    </select>
-                    <input type="text" id="study-subject" placeholder="اسم المادة (اختياري)..." class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
-                    <select id="timer-mode" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
-                        <option value="stopwatch">وضع العداد المفتوح (انتهيت)</option>
-                        <option value="countdown">وضع المؤقت التنازلي المجدول</option>
-                    </select>
+            <!-- Log Hours Section with Timer / Stopwatch & Manual Past Hours -->
+            <div id="log-section" class="hidden bg-slate-900/80 p-5 rounded-xl border border-indigo-500/30 mb-8 space-y-5">
+                <div>
+                    <h3 class="text-md font-bold text-emerald-400 mb-3">⏱️ جلسة مذاكرة جديدة (مؤقت / توقيت)</h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                        <select id="active-competitor-select" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
+                            <option value="">اختر اسمك...</option>
+                        </select>
+                        <input type="text" id="study-subject" placeholder="اسم المادة (اختياري)..." class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
+                        <select id="timer-mode" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
+                            <option value="stopwatch">وضع العداد المفتوح (انتهيت)</option>
+                            <option value="countdown">وضع المؤقت التنازلي المجدول</option>
+                        </select>
+                    </div>
+
+                    <!-- Countdown inputs (hidden by default) -->
+                    <div id="countdown-settings" class="hidden flex items-center gap-3 mb-4">
+                        <input type="number" id="countdown-hours" min="0" value="1" placeholder="ساعات" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm w-1/2">
+                        <input type="number" id="countdown-minutes" min="0" max="59" value="0" placeholder="دقائق" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm w-1/2">
+                    </div>
+
+                    <!-- Active Timer Display Box -->
+                    <div id="active-timer-box" class="hidden bg-slate-800 p-4 rounded-xl text-center mb-4 border border-cyan-500">
+                        <p id="timer-status-text" class="text-sm text-cyan-400 mb-1">المذاكرة جارية الآن...</p>
+                        <div id="timer-display" class="text-3xl font-black text-white mb-4">00:00:00</div>
+                        <div class="flex flex-wrap items-center justify-center gap-2">
+                            <button id="btn-pause-timer" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-2 rounded-lg text-sm transition">إيقاف مؤقت ⏸️</button>
+                            <button id="btn-stop-timer" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-5 py-2 rounded-lg text-sm transition">إنهاء وتسجيل الساعات</button>
+                        </div>
+                    </div>
+
+                    <button id="btn-start-session" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition w-full">بدء جلسة المذاكرة 🚀</button>
                 </div>
 
-                <!-- Countdown inputs (hidden by default) -->
-                <div id="countdown-settings" class="hidden flex items-center gap-3 mb-4">
-                    <input type="number" id="countdown-hours" min="0" value="1" placeholder="ساعات" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm w-1/2">
-                    <input type="number" id="countdown-minutes" min="0" max="59" value="0" placeholder="دقائق" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm w-1/2">
+                <!-- Past Hours Input Section (Controlled by Creator) -->
+                <div id="past-hours-section" class="pt-4 border-t border-slate-700/80">
+                    <h4 class="text-sm font-bold text-cyan-300 mb-2">➕ تسجيل ساعات ذاكرتها مسبقاً</h4>
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <input type="number" id="past-hours-input" step="0.1" min="0.1" placeholder="عدد الساعات السابقة (مثال: 1.5)" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm flex-1">
+                        <button id="btn-add-past-hours" class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold px-4 py-2 rounded-lg text-sm transition">إضافة للرصيد</button>
+                    </div>
                 </div>
-
-                <!-- Active Timer Display Box -->
-                <div id="active-timer-box" class="hidden bg-slate-800 p-4 rounded-xl text-center mb-4 border border-cyan-500">
-                    <p id="timer-status-text" class="text-sm text-cyan-400 mb-1">المذاكرة جارية الآن...</p>
-                    <div id="timer-display" class="text-3xl font-black text-white mb-3">00:00:00</div>
-                    <button id="btn-stop-timer" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 py-2 rounded-lg text-sm transition">إنهاء وتسجيل الساعات</button>
-                </div>
-
-                <button id="btn-start-session" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition w-full">بدء جلسة المذاكرة 🚀</button>
             </div>
 
             <!-- Leaderboard Section -->
@@ -160,11 +186,14 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        const SESSION_STORAGE_KEY = 'study_active_session_v2';
+
         let currentRoom = localStorage.getItem('study_room_code') || '';
         let currentUserId = localStorage.getItem('study_user_id') || Math.random().toString(36).substring(2, 10);
         localStorage.setItem('study_user_id', currentUserId);
 
         let currentCompetitorName = '';
+        let currentRoomData = null;
         let unsubscribeRTDB = null;
         let activeTimerInterval = null;
         let timerSessionData = null;
@@ -174,14 +203,43 @@
         let activeAnnouncementTimer = null;
         let isBannerShowing = false;
 
+        function persistSession(session) {
+            if (session) {
+                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+            } else {
+                localStorage.removeItem(SESSION_STORAGE_KEY);
+            }
+        }
+
+        function readPersistedSession() {
+            try {
+                const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch {
+                return null;
+            }
+        }
+
+        function getSessionElapsedSeconds(session, now = Date.now()) {
+            const base = session.accumulatedSeconds || 0;
+            if (session.isPaused || !session.lastResumeTime) {
+                return Math.max(0, Math.floor(base));
+            }
+            const delta = Math.max(0, Math.floor((now - session.lastResumeTime) / 1000));
+            return base + delta;
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('btn-create-room').addEventListener('click', createRoom);
             document.getElementById('btn-join-room').addEventListener('click', joinRoom);
             document.getElementById('btn-save-goal').addEventListener('click', updateGoal);
             document.getElementById('btn-add-competitor').addEventListener('click', addCompetitor);
+            document.getElementById('toggle-past-hours').addEventListener('change', togglePastHoursSetting);
             document.getElementById('timer-mode').addEventListener('change', toggleTimerMode);
             document.getElementById('btn-start-session').addEventListener('click', startStudySession);
-            document.getElementById('btn-stop-timer').addEventListener('click', stopActiveTimer);
+            document.getElementById('btn-pause-timer').addEventListener('click', togglePauseTimer);
+            document.getElementById('btn-stop-timer').addEventListener('click', () => stopActiveTimer(false));
+            document.getElementById('btn-add-past-hours').addEventListener('click', addPastHours);
             document.getElementById('btn-reset-challenge').addEventListener('click', resetChallengeSession);
             document.getElementById('btn-send-notice').addEventListener('click', sendNotice);
             document.getElementById('btn-dismiss-announcement').addEventListener('click', () => {
@@ -190,10 +248,19 @@
                 if (currentId) dismissCurrentAnnouncement(currentId);
             });
 
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && timerSessionData) {
+                    refreshTimerDisplay();
+                    if (!timerSessionData.isPaused && !activeTimerInterval) {
+                        startTimerInterval();
+                    }
+                }
+            });
+
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) {
-                currentRoom = roomParam;
+                currentRoom = roomParam.trim().toUpperCase();
                 localStorage.setItem('study_room_code', currentRoom);
             }
             if (currentRoom) {
@@ -211,6 +278,7 @@
                 goal: 20,
                 creatorId: currentUserId,
                 goalLocked: false,
+                allowPastHours: true,
                 competitors: {},
                 announcements: null
             }).then(() => {
@@ -241,11 +309,52 @@
             unsubscribeRTDB = onValue(roomRef, (snapshot) => {
                 const data = snapshot.val();
                 if (!data) {
-                    set(roomRef, { goal: 20, creatorId: currentUserId, goalLocked: false, competitors: {}, announcements: null });
+                    set(roomRef, {
+                        goal: 20,
+                        creatorId: currentUserId,
+                        goalLocked: false,
+                        allowPastHours: true,
+                        competitors: {},
+                        announcements: null
+                    });
                     return;
                 }
+                if (typeof data.allowPastHours === 'undefined') {
+                    update(roomRef, { allowPastHours: true });
+                }
+                currentRoomData = data;
                 renderApp(data);
+                restoreSessionIfMatchingRoom(roomCode);
             });
+        }
+
+        function restoreSessionIfMatchingRoom(roomCode) {
+            if (timerSessionData) return;
+            const saved = readPersistedSession();
+            if (!saved || saved.roomCode !== roomCode) return;
+
+            timerSessionData = saved;
+            currentCompetitorName = saved.name || currentCompetitorName;
+            document.getElementById('log-section').classList.remove('hidden');
+            document.getElementById('notice-section').classList.remove('hidden');
+            if (saved.name) {
+                document.getElementById('active-competitor-select').value = saved.name;
+            }
+            document.getElementById('btn-start-session').classList.add('hidden');
+            document.getElementById('active-timer-box').classList.remove('hidden');
+            syncPauseButtonUI();
+            refreshTimerDisplay();
+
+            if (!timerSessionData.isPaused) {
+                startTimerInterval();
+            }
+        }
+
+        function togglePastHoursSetting() {
+            if (!currentRoom || !currentRoomData) return;
+            if (currentRoomData.creatorId !== currentUserId) return;
+            const enabled = document.getElementById('toggle-past-hours').checked;
+            update(ref(db, `rooms/${currentRoom}`), { allowPastHours: enabled });
         }
 
         function updateGoal() {
@@ -258,7 +367,12 @@
                     return;
                 }
                 const newGoal = parseFloat(document.getElementById('weekly-goal-input').value) || 20;
-                update(roomRef, { goal: newGoal, goalLocked: true, creatorId: (data && data.creatorId) || currentUserId });
+                update(roomRef, {
+                    goal: newGoal,
+                    goalLocked: true,
+                    creatorId: (data && data.creatorId) || currentUserId,
+                    allowPastHours: typeof (data && data.allowPastHours) === 'boolean' ? data.allowPastHours : true
+                });
             });
         }
 
@@ -282,6 +396,29 @@
                 document.getElementById('log-section').classList.remove('hidden');
                 document.getElementById('notice-section').classList.remove('hidden');
             });
+        }
+
+        function addPastHours() {
+            if (!currentRoomData || currentRoomData.allowPastHours === false) {
+                alert('عذراً، خاصية إضافة الساعات السابقة متوقفة حالياً من قِبل منشئ الغرفة.');
+                return;
+            }
+
+            const name = document.getElementById('active-competitor-select').value || currentCompetitorName;
+            if (!name) {
+                alert('الرجاء اختيار اسمك من القائمة أولاً');
+                return;
+            }
+
+            const inputEl = document.getElementById('past-hours-input');
+            const hoursToAdd = parseFloat(inputEl.value);
+            if (!hoursToAdd || hoursToAdd <= 0) {
+                alert('الرجاء إدخال عدد ساعات صحيح أكبر من الصفر');
+                return;
+            }
+
+            addHoursToDatabase(name, parseFloat(hoursToAdd.toFixed(2)));
+            inputEl.value = '';
         }
 
         function sendNotice() {
@@ -319,13 +456,11 @@
 
             const seenList = JSON.parse(localStorage.getItem('seen_anns_' + currentRoom) || '[]');
             
-            // Convert announcements object to sorted array by timestamp
             const arr = Object.keys(announcementsObj).map(key => ({
                 id: key,
                 ...announcementsObj[key]
             })).sort((a, b) => a.timestamp - b.timestamp);
 
-            // Filter out messages written by current user AND already seen messages
             announcementQueue = arr.filter(ann => ann.senderUserId !== currentUserId && !seenList.includes(ann.id));
 
             if (announcementQueue.length > 0 && !isBannerShowing) {
@@ -349,7 +484,6 @@
             banner.setAttribute('data-current-ann-id', currentAnn.id);
             banner.classList.remove('hidden');
 
-            // Clear any existing timer and auto-dismiss after 30 seconds (half a minute)
             if (activeAnnouncementTimer) clearTimeout(activeAnnouncementTimer);
             activeAnnouncementTimer = setTimeout(() => {
                 dismissCurrentAnnouncement(currentAnn.id);
@@ -359,7 +493,6 @@
         function dismissCurrentAnnouncement(annId) {
             if (activeAnnouncementTimer) clearTimeout(activeAnnouncementTimer);
             
-            // Mark as permanently seen in localStorage
             const seenList = JSON.parse(localStorage.getItem('seen_anns_' + currentRoom) || '[]');
             if (!seenList.includes(annId)) {
                 seenList.push(annId);
@@ -369,7 +502,6 @@
             hideBanner();
             isBannerShowing = false;
 
-            // If there are more unseen messages in queue, show the next one after a brief moment
             if (announcementQueue.length > 0) {
                 setTimeout(showNextAnnouncement, 500);
             }
@@ -441,58 +573,113 @@
             const mode = document.getElementById('timer-mode').value;
             const subject = document.getElementById('study-subject').value.trim() || 'مذاكرة عامة';
 
-            document.getElementById('btn-start-session').classList.add('hidden');
-            document.getElementById('active-timer-box').classList.remove('hidden');
-
-            let startTime = Date.now();
             let targetSeconds = 0;
-
             if (mode === 'countdown') {
                 const h = parseInt(document.getElementById('countdown-hours').value) || 0;
                 const m = parseInt(document.getElementById('countdown-minutes').value) || 0;
                 targetSeconds = (h * 3600) + (m * 60);
                 if (targetSeconds <= 0) {
                     alert('الرجاء إدخال وقت صحيح للمؤقت');
-                    resetTimerUI();
                     return;
                 }
             }
 
-            timerSessionData = { name, subject, mode, startTime, targetSeconds, elapsedSeconds: 0 };
+            timerSessionData = {
+                roomCode: currentRoom,
+                name,
+                subject,
+                mode,
+                targetSeconds,
+                accumulatedSeconds: 0,
+                lastResumeTime: Date.now(),
+                isPaused: false
+            };
+            persistSession(timerSessionData);
 
-            activeTimerInterval = setInterval(() => {
-                const now = Date.now();
-                const diffSecs = Math.floor((now - timerSessionData.startTime) / 1000);
+            document.getElementById('btn-start-session').classList.add('hidden');
+            document.getElementById('active-timer-box').classList.remove('hidden');
+            syncPauseButtonUI();
+            refreshTimerDisplay();
+            startTimerInterval();
+        }
 
-                if (timerSessionData.mode === 'stopwatch') {
-                    timerSessionData.elapsedSeconds = diffSecs;
-                    document.getElementById('timer-display').innerText = formatTime(diffSecs);
-                } else {
-                    let remaining = timerSessionData.targetSeconds - diffSecs;
-                    if (remaining <= 0) {
-                        remaining = 0;
-                        document.getElementById('timer-display').innerText = "00:00:00";
-                        alert('🎉 انتهى وقت المؤقت بنجاح!');
-                        stopActiveTimer();
-                        return;
-                    }
-                    document.getElementById('timer-display').innerText = formatTime(remaining);
+        function togglePauseTimer() {
+            if (!timerSessionData) return;
+
+            if (!timerSessionData.isPaused) {
+                timerSessionData.accumulatedSeconds = getSessionElapsedSeconds(timerSessionData);
+                timerSessionData.lastResumeTime = null;
+                timerSessionData.isPaused = true;
+                if (activeTimerInterval) {
+                    clearInterval(activeTimerInterval);
+                    activeTimerInterval = null;
                 }
+            } else {
+                timerSessionData.lastResumeTime = Date.now();
+                timerSessionData.isPaused = false;
+                startTimerInterval();
+            }
+
+            persistSession(timerSessionData);
+            syncPauseButtonUI();
+            refreshTimerDisplay();
+        }
+
+        function syncPauseButtonUI() {
+            const btn = document.getElementById('btn-pause-timer');
+            const statusText = document.getElementById('timer-status-text');
+            if (!timerSessionData) return;
+
+            if (timerSessionData.isPaused) {
+                btn.innerHTML = 'استئناف ▶️';
+                btn.className = 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2 rounded-lg text-sm transition';
+                statusText.innerText = 'المؤقت متوقف مؤقتاً...';
+                statusText.className = 'text-sm text-amber-400 mb-1';
+            } else {
+                btn.innerHTML = 'إيقاف مؤقت ⏸️';
+                btn.className = 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-2 rounded-lg text-sm transition';
+                statusText.innerText = 'المذاكرة جارية الآن...';
+                statusText.className = 'text-sm text-cyan-400 mb-1';
+            }
+        }
+
+        function startTimerInterval() {
+            if (activeTimerInterval) clearInterval(activeTimerInterval);
+            activeTimerInterval = setInterval(() => {
+                refreshTimerDisplay();
             }, 1000);
         }
 
-        function stopActiveTimer() {
+        function refreshTimerDisplay() {
             if (!timerSessionData) return;
-            clearInterval(activeTimerInterval);
+            const elapsedSecs = getSessionElapsedSeconds(timerSessionData);
 
-            const now = Date.now();
-            const actualElapsedSecs = Math.floor((now - timerSessionData.startTime) / 1000);
-
-            let finalSeconds = 0;
             if (timerSessionData.mode === 'stopwatch') {
-                finalSeconds = timerSessionData.elapsedSeconds;
+                document.getElementById('timer-display').innerText = formatTime(elapsedSecs);
             } else {
-                finalSeconds = Math.min(actualElapsedSecs, timerSessionData.targetSeconds);
+                const remaining = Math.max(0, timerSessionData.targetSeconds - elapsedSecs);
+                document.getElementById('timer-display').innerText = formatTime(remaining);
+                if (remaining <= 0) {
+                    alert('🎉 انتهى وقت المؤقت بنجاح!');
+                    stopActiveTimer(true);
+                }
+            }
+        }
+
+        function stopActiveTimer(completedCountdown = false) {
+            if (!timerSessionData) return;
+            if (activeTimerInterval) {
+                clearInterval(activeTimerInterval);
+                activeTimerInterval = null;
+            }
+
+            const elapsedSecs = getSessionElapsedSeconds(timerSessionData);
+            let finalSeconds = elapsedSecs;
+
+            if (timerSessionData.mode === 'countdown') {
+                finalSeconds = completedCountdown
+                    ? timerSessionData.targetSeconds
+                    : Math.min(elapsedSecs, timerSessionData.targetSeconds);
             }
 
             const hoursEarned = parseFloat((finalSeconds / 3600).toFixed(2));
@@ -500,12 +687,16 @@
                 addHoursToDatabase(timerSessionData.name, hoursEarned);
             }
 
-            resetTimerUI();
+            persistSession(null);
             timerSessionData = null;
+            resetTimerUI();
         }
 
         function resetTimerUI() {
-            if (activeTimerInterval) clearInterval(activeTimerInterval);
+            if (activeTimerInterval) {
+                clearInterval(activeTimerInterval);
+                activeTimerInterval = null;
+            }
             document.getElementById('active-timer-box').classList.add('hidden');
             document.getElementById('btn-start-session').classList.remove('hidden');
             document.getElementById('timer-display').innerText = "00:00:00";
@@ -545,6 +736,31 @@
                 document.getElementById('btn-save-goal').classList.remove('hidden');
             }
 
+            const isCreator = data.creatorId === currentUserId;
+            const allowPastHours = data.allowPastHours !== false;
+
+            const creatorPastBox = document.getElementById('creator-past-hours-box');
+            const pastHoursSection = document.getElementById('past-hours-section');
+            const togglePastEl = document.getElementById('toggle-past-hours');
+            const pastHoursBadge = document.getElementById('past-hours-badge');
+
+            if (isCreator) {
+                creatorPastBox.classList.remove('hidden');
+                togglePastEl.checked = allowPastHours;
+                pastHoursBadge.innerText = allowPastHours ? 'مفعّل' : 'متوقف';
+                pastHoursBadge.className = allowPastHours
+                    ? 'text-xs font-bold text-emerald-400'
+                    : 'text-xs font-bold text-rose-400';
+            } else {
+                creatorPastBox.classList.add('hidden');
+            }
+
+            if (allowPastHours) {
+                pastHoursSection.classList.remove('hidden');
+            } else {
+                pastHoursSection.classList.add('hidden');
+            }
+
             // Process announcements queue
             handleAnnouncements(data.announcements);
 
@@ -556,7 +772,6 @@
             }));
 
             const hasWinner = competitorsArr.some(c => c.hours >= goal);
-            const isCreator = data.creatorId === currentUserId;
             const resetSection = document.getElementById('creator-reset-section');
             if (isCreator && hasWinner) {
                 resetSection.classList.remove('hidden');
