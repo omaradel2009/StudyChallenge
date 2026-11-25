@@ -136,6 +136,7 @@
                         <div id="timer-display" class="text-3xl font-black text-white mb-4">00:00:00</div>
                         <div class="flex flex-wrap items-center justify-center gap-2">
                             <button id="btn-pause-timer" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-2 rounded-lg text-sm transition">إيقاف مؤقت ⏸️</button>
+                            <button id="btn-cancel-timer" class="bg-slate-600 hover:bg-slate-500 text-white font-bold px-5 py-2 rounded-lg text-sm transition">إلغاء العداد ✖️</button>
                             <button id="btn-stop-timer" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-5 py-2 rounded-lg text-sm transition">إنهاء وتسجيل الساعات</button>
                         </div>
                     </div>
@@ -147,7 +148,7 @@
                 <div id="past-hours-section" class="pt-4 border-t border-slate-700/80">
                     <h4 class="text-sm font-bold text-cyan-300 mb-2">➕ تسجيل ساعات ذاكرتها مسبقاً</h4>
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <input type="number" id="past-hours-input" step="0.1" min="0.1" placeholder="عدد الساعات السابقة (مثال: 1.5)" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm flex-1">
+                        <input type="number" id="past-hours-input" step="0.1" placeholder="عدد الساعات السابقة (مثال: 1.5 أو -0.5)" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm flex-1">
                         <button id="btn-add-past-hours" class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold px-4 py-2 rounded-lg text-sm transition">إضافة للرصيد</button>
                     </div>
                 </div>
@@ -238,6 +239,7 @@
             document.getElementById('timer-mode').addEventListener('change', toggleTimerMode);
             document.getElementById('btn-start-session').addEventListener('click', startStudySession);
             document.getElementById('btn-pause-timer').addEventListener('click', togglePauseTimer);
+            document.getElementById('btn-cancel-timer').addEventListener('click', cancelActiveTimer);
             document.getElementById('btn-stop-timer').addEventListener('click', () => stopActiveTimer(false));
             document.getElementById('btn-add-past-hours').addEventListener('click', addPastHours);
             document.getElementById('btn-reset-challenge').addEventListener('click', resetChallengeSession);
@@ -412,8 +414,8 @@
 
             const inputEl = document.getElementById('past-hours-input');
             const hoursToAdd = parseFloat(inputEl.value);
-            if (!hoursToAdd || hoursToAdd <= 0) {
-                alert('الرجاء إدخال عدد ساعات صحيح أكبر من الصفر');
+            if (Number.isNaN(hoursToAdd) || hoursToAdd === 0) {
+                alert('الرجاء إدخال عدد ساعات صحيح (موجب للإضافة أو سالب للإنقاص)');
                 return;
             }
 
@@ -666,6 +668,13 @@
             }
         }
 
+        function cancelActiveTimer() {
+            if (!timerSessionData) return;
+            persistSession(null);
+            timerSessionData = null;
+            resetTimerUI();
+        }
+
         function stopActiveTimer(completedCountdown = false) {
             if (!timerSessionData) return;
             if (activeTimerInterval) {
@@ -716,7 +725,7 @@
             get(compRef).then((snapshot) => {
                 if (snapshot.exists()) {
                     const currentHours = snapshot.val().hours || 0;
-                    const updatedHours = parseFloat((currentHours + hoursToAdd).toFixed(2));
+                    const updatedHours = Math.max(0, parseFloat((currentHours + hoursToAdd).toFixed(2)));
                     update(compRef, { hours: updatedHours });
                 }
             });
@@ -848,4 +857,4 @@
         }
     </script>
 </body>
-</html>
+    </html>
