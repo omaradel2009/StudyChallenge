@@ -41,49 +41,61 @@
         <!-- Main Challenge Area (Hidden until room is joined) -->
         <div id="challenge-container" class="hidden">
             
-            <!-- Goal & Join Form -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- Goal Card -->
-                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 flex flex-col justify-between">
-                    <div>
-                        <h2 class="text-lg font-bold text-cyan-400 mb-1">🎯 تحدي الهدف بالساعات</h2>
-                        <p id="goal-desc" class="text-slate-400 text-xs mb-2">حدد الهدف العام وحد الترحيل التلقائي للعداد (بالساعات، للمنشئ فقط).</p>
-                    </div>
-                    <div class="space-y-2">
-                        <div id="goal-container" class="flex flex-wrap items-center gap-2">
-                            <input type="number" id="weekly-goal-input" min="1" value="20" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white w-20 text-center font-bold text-sm">
-                            <span class="text-xs text-slate-300">ساعة هدف</span>
-                            <input type="number" id="auto-chunk-hours-input" min="0.1" step="0.1" value="7" title="حد الترحيل التلقائي للعداد" class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-amber-300 w-20 text-center font-bold text-sm">
-                            <span class="text-xs text-amber-300">ترحيل كل (ساعة)</span>
-                            <button id="btn-save-goal" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition">حفظ الهدف</button>
-                        </div>
-                        <p id="chunk-info-text" class="text-[11px] text-amber-400/90">الترحيل التلقائي مضبوط على: 7 ساعات</p>
-                    </div>
-                </div>
-
-                <!-- Deadline Race Card (Parallel Challenge in Same Room) -->
-                <div class="bg-slate-900/50 p-4 rounded-xl border border-indigo-500/30 flex flex-col justify-between">
-                    <div>
-                        <h2 class="text-lg font-bold text-amber-400 mb-1">⏳ تحدي الموعد المحدد</h2>
-                        <p id="deadline-desc" class="text-slate-400 text-xs mb-3">يحدد المنشئ تاريخاً ووقتاً، وعند حلوله يفوز صاحب أعلى ساعات (للمنشئ فقط).</p>
-                    </div>
-                    <div id="deadline-container" class="flex flex-wrap items-center gap-2">
-                        <input type="datetime-local" id="deadline-date-input" class="bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-2 text-white text-xs flex-1">
-                        <button id="btn-save-deadline" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-3 py-2 rounded-lg text-sm transition">حفظ التاريخ</button>
-                    </div>
-                    <p id="deadline-status-text" class="text-[11px] text-slate-400 mt-2">لم يتم تحديد موعد للتحدي الزمني بعد.</p>
-                </div>
-
-                <!-- Join/Add Competitor Form -->
-                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 flex flex-col justify-between">
-                    <div>
-                        <h2 class="text-lg font-bold text-indigo-400 mb-1">👤 انضم كمنافس</h2>
-                        <p class="text-slate-400 text-xs mb-3">سجل اسمك لتبدأ في تسجيل ساعاتك التنافسية.</p>
-                    </div>
+            <!-- Swipeable Challenge Mode Switcher & Single Active Mode View -->
+            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700 mb-6">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <button id="btn-swipe-prev" type="button" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold px-3 py-1.5 rounded-lg text-xs border border-slate-600 transition">→ السابق</button>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="competitor-name" placeholder="اسمك الكريم..." class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white flex-1 text-sm">
-                        <button id="btn-add-competitor" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">انضم للتحدي</button>
+                        <button id="tab-mode-goal" type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-white transition">🎯 وضع الهدف</button>
+                        <button id="tab-mode-deadline" type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">⏳ وضع التاريخ</button>
                     </div>
+                    <button id="btn-swipe-next" type="button" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold px-3 py-1.5 rounded-lg text-xs border border-slate-600 transition">التالي ←</button>
+                </div>
+
+                <div id="mode-swipe-stage" class="select-none cursor-grab active:cursor-grabbing overflow-hidden">
+                    <!-- Mode 0: Goal Card (Visible when activeModeIndex === 0) -->
+                    <div id="mode-panel-goal" class="bg-slate-900/70 p-4 rounded-xl border border-slate-700 flex flex-col justify-between">
+                        <div>
+                            <h2 class="text-lg font-bold text-cyan-400 mb-1">🎯 تحدي الهدف بالساعات</h2>
+                            <p id="goal-desc" class="text-slate-400 text-xs mb-2">حدد الهدف العام وحد الترحيل التلقائي للعداد (بالساعات، للمنشئ فقط).</p>
+                        </div>
+                        <div class="space-y-2">
+                            <div id="goal-container" class="flex flex-wrap items-center gap-2">
+                                <input type="number" id="weekly-goal-input" min="1" value="20" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white w-20 text-center font-bold text-sm">
+                                <span class="text-xs text-slate-300">ساعة هدف</span>
+                                <input type="number" id="auto-chunk-hours-input" min="0.1" step="0.1" value="7" title="حد الترحيل التلقائي للعداد" class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-amber-300 w-20 text-center font-bold text-sm">
+                                <span class="text-xs text-amber-300">ترحيل كل (ساعة)</span>
+                                <button id="btn-save-goal" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition">حفظ الهدف</button>
+                            </div>
+                            <p id="chunk-info-text" class="text-[11px] text-amber-400/90">الترحيل التلقائي مضبوط على: 7 ساعات</p>
+                        </div>
+                    </div>
+
+                    <!-- Mode 1: Deadline Race Card (Visible when activeModeIndex === 1) -->
+                    <div id="mode-panel-deadline" class="hidden bg-slate-900/70 p-4 rounded-xl border border-indigo-500/30 flex flex-col justify-between">
+                        <div>
+                            <h2 class="text-lg font-bold text-amber-400 mb-1">⏳ تحدي الموعد المحدد</h2>
+                            <p id="deadline-desc" class="text-slate-400 text-xs mb-3">يحدد المنشئ تاريخاً ووقتاً، وعند حلوله يفوز صاحب أعلى ساعات (للمنشئ فقط).</p>
+                        </div>
+                        <div id="deadline-container" class="flex flex-wrap items-center gap-2">
+                            <input type="datetime-local" id="deadline-date-input" class="bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-2 text-white text-xs flex-1">
+                            <button id="btn-save-deadline" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-3 py-2 rounded-lg text-sm transition">حفظ التاريخ</button>
+                        </div>
+                        <p id="deadline-status-text" class="text-[11px] text-slate-400 mt-2">لم يتم تحديد موعد للتحدي الزمني بعد.</p>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 text-center mt-2">اسحب يميناً أو يساراً للتبديل بين وضع الهدف ووضع التاريخ وتحديث لوحة الصدارة.</p>
+            </div>
+
+            <!-- Join/Add Competitor Form -->
+            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 flex flex-col justify-between mb-6">
+                <div>
+                    <h2 class="text-lg font-bold text-indigo-400 mb-1">👤 انضم كمنافس</h2>
+                    <p class="text-slate-400 text-xs mb-3">سجل اسمك لتبدأ في تسجيل ساعاتك التنافسية (تسجيل الساعات يغذي التحديين معاً).</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="competitor-name" placeholder="اسمك الكريم..." class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white flex-1 text-sm">
+                    <button id="btn-add-competitor" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">انضم للتحدي</button>
                 </div>
             </div>
 
@@ -99,13 +111,21 @@
                 </label>
             </div>
 
-            <!-- Creator Reset Section (Hidden by default) -->
-            <div id="creator-reset-section" class="hidden bg-rose-950/30 border border-rose-500/40 p-4 rounded-xl mb-8 flex items-center justify-between">
+            <!-- Independent Creator Reset Sections (Goal Reset & Deadline Reset) -->
+            <div id="creator-reset-goal-section" class="hidden bg-rose-950/30 border border-rose-500/40 p-4 rounded-xl mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h4 class="text-rose-400 font-bold text-sm">👑 لوحة التحكم بالمنشئ</h4>
-                    <p class="text-slate-400 text-xs">لقد حقق أحد المتنافسين الهدف! يمكنك الآن إنهاء التحدي وتصفير الساعات لبدء أسبوع جديد.</p>
+                    <h4 class="text-rose-400 font-bold text-sm">👑 تصفير تحدي الهدف بالساعات</h4>
+                    <p class="text-slate-400 text-xs">تم تعيين فائز في تحدي الهدف! يمكنك تصفير تحدي الهدف وإبقاء تحدي الموعد المحدد.</p>
                 </div>
-                <button id="btn-reset-challenge" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">إنهاء التحدي وتصفير الساعات</button>
+                <button id="btn-reset-goal-challenge" type="button" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">تصفير تحدي الهدف</button>
+            </div>
+
+            <div id="creator-reset-deadline-section" class="hidden bg-amber-950/30 border border-amber-500/40 p-4 rounded-xl mb-8 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h4 class="text-amber-400 font-bold text-sm">⏳ تصفير تحدي الموعد المحدد</h4>
+                    <p class="text-slate-400 text-xs">انتهى الموعد المحدد وتم تعيين فائز التحدي الزمني! يمكنك تصفيره وإبقاء تحدي الهدف.</p>
+                </div>
+                <button id="btn-reset-deadline-challenge" type="button" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition shadow-lg">تصفير تحدي الموعد</button>
             </div>
 
             <!-- Notification Banner Section (Auto disappears after 30s) -->
@@ -174,9 +194,34 @@
 
             <!-- Leaderboard Section -->
             <div>
-                <h3 class="text-xl font-bold mb-4 text-white flex items-center gap-2">
-                    🏆 لوحة الصدارة الحية
-                </h3>
+                <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                    <h3 id="leaderboard-mode-title" class="text-xl font-bold text-white flex items-center gap-2">
+                        🏆 لوحة صدارة تحدي الهدف
+                    </h3>
+                    <span id="leaderboard-mode-hint" class="text-xs text-cyan-300 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">الوضع الحالي: الهدف</span>
+                </div>
+
+                <!-- Large Days : Hours : Minutes Countdown Above Deadline Leaderboard -->
+                <div id="deadline-large-countdown-box" class="hidden bg-slate-900/90 border border-amber-500/40 rounded-2xl p-5 mb-5 text-center shadow-lg">
+                    <p id="deadline-countdown-label" class="text-xs sm:text-sm font-bold text-amber-400 mb-3">الوقت المتبقي حتى نهاية التحدي الزمني</p>
+                    <div dir="ltr" class="flex items-center justify-center gap-3 sm:gap-5 font-black text-white">
+                        <div class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 min-w-[82px]">
+                            <div id="cd-days" class="text-2xl sm:text-4xl text-cyan-400 tabular-nums">00</div>
+                            <div class="text-[11px] text-slate-400 mt-1">أيام</div>
+                        </div>
+                        <span class="text-2xl sm:text-4xl text-amber-400">:</span>
+                        <div class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 min-w-[82px]">
+                            <div id="cd-hours" class="text-2xl sm:text-4xl text-cyan-400 tabular-nums">00</div>
+                            <div class="text-[11px] text-slate-400 mt-1">ساعات</div>
+                        </div>
+                        <span class="text-2xl sm:text-4xl text-amber-400">:</span>
+                        <div class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 min-w-[82px]">
+                            <div id="cd-minutes" class="text-2xl sm:text-4xl text-cyan-400 tabular-nums">00</div>
+                            <div class="text-[11px] text-slate-400 mt-1">دقائق</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="leaderboard-list" class="space-y-4">
                     <!-- Dynamic Leaderboard Items -->
                 </div>
@@ -216,6 +261,9 @@
         let unsubscribeRTDB = null;
         let activeTimerInterval = null;
         let timerSessionData = null;
+        let activeChallengeMode = localStorage.getItem('study_active_mode') === 'deadline' ? 'deadline' : 'goal';
+        let swipePointerStartX = null;
+        let deadlineCountdownInterval = null;
 
         // Announcements Queue & Timing State
         let announcementQueue = [];
@@ -261,7 +309,32 @@
             document.getElementById('btn-cancel-timer').addEventListener('click', cancelActiveTimer);
             document.getElementById('btn-stop-timer').addEventListener('click', () => stopActiveTimer(false));
             document.getElementById('btn-add-past-hours').addEventListener('click', addPastHours);
-            document.getElementById('btn-reset-challenge').addEventListener('click', resetChallengeSession);
+            document.getElementById('btn-reset-goal-challenge').addEventListener('click', resetGoalChallenge);
+            document.getElementById('btn-reset-deadline-challenge').addEventListener('click', resetDeadlineChallenge);
+            document.getElementById('tab-mode-goal').addEventListener('click', () => setActiveChallengeMode('goal'));
+            document.getElementById('tab-mode-deadline').addEventListener('click', () => setActiveChallengeMode('deadline'));
+            document.getElementById('btn-swipe-prev').addEventListener('click', () => toggleChallengeModeSwipe());
+            document.getElementById('btn-swipe-next').addEventListener('click', () => toggleChallengeModeSwipe());
+
+            const swipeStage = document.getElementById('mode-swipe-stage');
+            swipeStage.addEventListener('pointerdown', (e) => {
+                if (['INPUT', 'BUTTON', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+                swipePointerStartX = e.clientX;
+            });
+            swipeStage.addEventListener('pointerup', (e) => {
+                if (swipePointerStartX === null) return;
+                const deltaX = e.clientX - swipePointerStartX;
+                swipePointerStartX = null;
+                if (Math.abs(deltaX) > 45) {
+                    toggleChallengeModeSwipe();
+                }
+            });
+            swipeStage.addEventListener('pointercancel', () => {
+                swipePointerStartX = null;
+            });
+
+            syncModeStageUI();
+            startDeadlineCountdownTicker();
             document.getElementById('btn-send-notice').addEventListener('click', sendNotice);
             document.getElementById('btn-dismiss-announcement').addEventListener('click', () => {
                 const banner = document.getElementById('announcement-banner');
@@ -564,48 +637,142 @@
             document.getElementById('announcement-banner').classList.add('hidden');
         }
 
-        function resetChallengeSession() {
+        function setActiveChallengeMode(mode) {
+            activeChallengeMode = mode === 'deadline' ? 'deadline' : 'goal';
+            localStorage.setItem('study_active_mode', activeChallengeMode);
+            syncModeStageUI();
+            if (currentRoomData) {
+                renderApp(currentRoomData);
+            }
+        }
+
+        function toggleChallengeModeSwipe() {
+            setActiveChallengeMode(activeChallengeMode === 'goal' ? 'deadline' : 'goal');
+        }
+
+        function syncModeStageUI() {
+            const isGoal = activeChallengeMode === 'goal';
+            document.getElementById('mode-panel-goal').classList.toggle('hidden', !isGoal);
+            document.getElementById('mode-panel-deadline').classList.toggle('hidden', isGoal);
+
+            const goalTab = document.getElementById('tab-mode-goal');
+            const deadlineTab = document.getElementById('tab-mode-deadline');
+            goalTab.className = isGoal
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-white transition'
+                : 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+            deadlineTab.className = !isGoal
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition'
+                : 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+        }
+
+        function updateDeadlineCountdownDisplay(deadlineAt) {
+            const box = document.getElementById('deadline-large-countdown-box');
+            const showBox = activeChallengeMode === 'deadline' && typeof deadlineAt === 'number';
+            box.classList.toggle('hidden', !showBox);
+            if (!showBox) return;
+
+            const diffMs = Math.max(0, deadlineAt - Date.now());
+            const totalMinutes = Math.floor(diffMs / 60000);
+            const days = Math.floor(totalMinutes / (60 * 24));
+            const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+            const minutes = totalMinutes % 60;
+
+            document.getElementById('cd-days').innerText = String(days).padStart(2, '0');
+            document.getElementById('cd-hours').innerText = String(hours).padStart(2, '0');
+            document.getElementById('cd-minutes').innerText = String(minutes).padStart(2, '0');
+
+            const label = document.getElementById('deadline-countdown-label');
+            label.innerText = diffMs === 0
+                ? 'انتهى الوقت المحدد للتحدي الزمني'
+                : 'الوقت المتبقي حتى نهاية التحدي الزمني (أيام : ساعات : دقائق)';
+        }
+
+        function startDeadlineCountdownTicker() {
+            if (deadlineCountdownInterval) clearInterval(deadlineCountdownInterval);
+            deadlineCountdownInterval = setInterval(() => {
+                if (currentRoomData && currentRoomData.deadlineAt) {
+                    updateDeadlineCountdownDisplay(currentRoomData.deadlineAt);
+                    if (activeChallengeMode === 'deadline') {
+                        renderApp(currentRoomData);
+                    }
+                }
+            }, 1000);
+        }
+
+        function resetGoalChallenge() {
             if (!currentRoom) return;
             const roomRef = ref(db, `rooms/${currentRoom}`);
             get(roomRef).then((snapshot) => {
                 if (!snapshot.exists()) return;
                 const data = snapshot.val();
-                
                 if (data.creatorId !== currentUserId) {
                     alert('هذا الإجراء متاح لمنشئ الغرفة فقط.');
                     return;
                 }
-
                 const competitorsObj = data.competitors || {};
                 const goal = data.goal || 20;
                 const hasGoalWinner = Object.values(competitorsObj).some(c => (c.hours || 0) >= goal);
-                const deadlineReached = typeof data.deadlineAt === 'number' && Date.now() >= data.deadlineAt;
-
-                if (!hasGoalWinner && !deadlineReached) {
-                    alert('لا يمكن تصفير الغرفة قبل وصول شخص للهدف أو حلول الموعد المحدد للتحدي الزمني!');
+                if (!hasGoalWinner) {
+                    alert('لا يمكن تصفير تحدي الهدف قبل تعيين الفائز بوصول أحد المتنافسين للهدف!');
                     return;
                 }
 
-                const resetCompetitors = {};
+                const updatedCompetitors = {};
                 Object.keys(competitorsObj).forEach(name => {
-                    resetCompetitors[name] = {
+                    const prev = competitorsObj[name] || {};
+                    updatedCompetitors[name] = {
+                        ...prev,
                         hours: 0,
-                        deadlineHours: 0,
-                        isStudying: false,
-                        joinedAt: competitorsObj[name].joinedAt || Date.now()
+                        deadlineHours: typeof prev.deadlineHours === 'number' ? prev.deadlineHours : (prev.hours || 0),
+                        joinedAt: prev.joinedAt || Date.now()
                     };
                 });
 
                 update(roomRef, {
                     goalLocked: false,
-                    deadlineAt: null,
-                    deadlineLocked: false,
-                    competitors: resetCompetitors,
-                    announcements: null
+                    competitors: updatedCompetitors
                 }).then(() => {
                     window.hasCelebrated = false;
-                    localStorage.removeItem('seen_anns_' + currentRoom);
-                    alert('🔄 تم تصفير الغرفة وبدء أسبوع جديد بنجاح!');
+                    alert('🔄 تم تصفير تحدي الهدف فقط، وبقي تحدي الموعد المحدد كما هو.');
+                });
+            });
+        }
+
+        function resetDeadlineChallenge() {
+            if (!currentRoom) return;
+            const roomRef = ref(db, `rooms/${currentRoom}`);
+            get(roomRef).then((snapshot) => {
+                if (!snapshot.exists()) return;
+                const data = snapshot.val();
+                if (data.creatorId !== currentUserId) {
+                    alert('هذا الإجراء متاح لمنشئ الغرفة فقط.');
+                    return;
+                }
+                const deadlineReached = typeof data.deadlineAt === 'number' && Date.now() >= data.deadlineAt;
+                if (!deadlineReached) {
+                    alert('لا يمكن تصفير تحدي الموعد المحدد قبل انتهاء الوقت وتعيين الفائز!');
+                    return;
+                }
+
+                const competitorsObj = data.competitors || {};
+                const updatedCompetitors = {};
+                Object.keys(competitorsObj).forEach(name => {
+                    const prev = competitorsObj[name] || {};
+                    updatedCompetitors[name] = {
+                        ...prev,
+                        hours: prev.hours || 0,
+                        deadlineHours: 0,
+                        joinedAt: prev.joinedAt || Date.now()
+                    };
+                });
+
+                update(roomRef, {
+                    deadlineAt: null,
+                    deadlineLocked: false,
+                    competitors: updatedCompetitors
+                }).then(() => {
+                    window.hasCelebrated = false;
+                    alert('🔄 تم تصفير تحدي الموعد المحدد فقط، وبقي تحدي الهدف كما هو.');
                 });
             });
         }
@@ -943,14 +1110,34 @@
 
             const deadlineReached = typeof data.deadlineAt === 'number' && Date.now() >= data.deadlineAt;
             const hasGoalWinner = competitorsArr.some(c => c.hours >= goal);
-            const resetSection = document.getElementById('creator-reset-section');
-            if (isCreator && (hasGoalWinner || deadlineReached)) {
-                resetSection.classList.remove('hidden');
+            const resetGoalSection = document.getElementById('creator-reset-goal-section');
+            const resetDeadlineSection = document.getElementById('creator-reset-deadline-section');
+
+            if (isCreator && hasGoalWinner) {
+                resetGoalSection.classList.remove('hidden');
             } else {
-                resetSection.classList.add('hidden');
+                resetGoalSection.classList.add('hidden');
             }
 
+            if (isCreator && deadlineReached) {
+                resetDeadlineSection.classList.remove('hidden');
+            } else {
+                resetDeadlineSection.classList.add('hidden');
+            }
+
+            const isDeadlineMode = activeChallengeMode === 'deadline';
+            document.getElementById('leaderboard-mode-title').innerText = isDeadlineMode
+                ? '🏆 لوحة صدارة تحدي الموعد المحدد'
+                : '🏆 لوحة صدارة تحدي الهدف';
+            document.getElementById('leaderboard-mode-hint').innerText = isDeadlineMode
+                ? 'الوضع الحالي: التاريخ'
+                : 'الوضع الحالي: الهدف';
+            updateDeadlineCountdownDisplay(data.deadlineAt);
+
             competitorsArr.sort((a, b) => {
+                if (isDeadlineMode) {
+                    return b.deadlineHours - a.deadlineHours || b.hours - a.hours || a.joinedAt - b.joinedAt;
+                }
                 const aWon = a.hours >= goal ? 1 : 0;
                 const bWon = b.hours >= goal ? 1 : 0;
                 if (aWon !== bWon) return bWon - aWon;
@@ -986,19 +1173,29 @@
                 : null;
 
             competitorsArr.forEach((c, index) => {
-                const percentage = Math.min(Math.round((c.hours / goal) * 100), 100);
                 const isGoalWinner = c.hours >= goal;
                 const isTimedWinner = Boolean(timedWinnerName && c.name === timedWinnerName);
-                const isWinner = isGoalWinner || isTimedWinner;
+                const isActiveWinner = isDeadlineMode ? isTimedWinner : isGoalWinner;
+                const percentage = isDeadlineMode
+                    ? (maxDeadlineHours > 0 ? Math.min(Math.round((c.deadlineHours / maxDeadlineHours) * 100), 100) : 0)
+                    : Math.min(Math.round((c.hours / goal) * 100), 100);
 
-                if (isWinner && index === 0 && !window.hasCelebrated) {
+                if (isActiveWinner && index === 0 && !window.hasCelebrated) {
                     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                     window.hasCelebrated = true;
                 }
 
                 const item = document.createElement('div');
-                item.className = `bg-slate-900/70 p-4 rounded-xl border ${isWinner ? 'border-emerald-500 bg-emerald-950/20' : 'border-slate-700'} flex flex-col gap-2`;
+                item.className = `bg-slate-900/70 p-4 rounded-xl border ${isActiveWinner ? 'border-emerald-500 bg-emerald-950/20' : 'border-slate-700'} flex flex-col gap-2`;
                 
+                const badgeHtml = isDeadlineMode
+                    ? (isTimedWinner ? '<span class="bg-amber-400 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full">⏳ فائز التحدي الزمني!</span>' : '')
+                    : (isGoalWinner ? '<span class="bg-emerald-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full">🏆 الفائز بالهدف!</span>' : '');
+
+                const metricHtml = isDeadlineMode
+                    ? `${c.deadlineHours} ساعة (تحدي التاريخ)`
+                    : `${c.hours} / ${goal} ساعة`;
+
                 item.innerHTML = `
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <div class="flex items-center gap-2.5 flex-wrap">
@@ -1007,11 +1204,10 @@
                             </span>
                             <span class="font-bold text-white text-base sm:text-lg">${escapeHtml(c.name)}</span>
                             ${c.isStudying ? '<span class="bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-xs font-bold px-2 py-0.5 rounded-full">أذاكر</span>' : ''}
-                            ${isGoalWinner ? '<span class="bg-emerald-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full">🏆 الفائز بالهدف!</span>' : ''}
-                            ${isTimedWinner ? '<span class="bg-amber-400 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full">⏳ فائز التحدي الزمني!</span>' : ''}
+                            ${badgeHtml}
                         </div>
                         <div class="text-cyan-400 font-bold text-sm sm:text-base">
-                            ${c.hours} / ${goal} ساعة${data.deadlineAt ? ` • تحدي الوقت: ${c.deadlineHours} س` : ''}
+                            ${metricHtml}
                         </div>
                     </div>
                     <!-- Progress Bar -->
@@ -1028,4 +1224,4 @@
         }
     </script>
 </body>
-                    </html>
+    </html>
