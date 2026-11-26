@@ -46,14 +46,32 @@
                 <!-- Goal Card -->
                 <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 flex flex-col justify-between">
                     <div>
-                        <h2 class="text-lg font-bold text-cyan-400 mb-1">🎯 الهدف الأسبوعي العام</h2>
-                        <p id="goal-desc" class="text-slate-400 text-xs mb-3">حدد عدد ساعات المذاكرة المستهدفة لهذا الأسبوع (للمنشئ فقط).</p>
+                        <h2 class="text-lg font-bold text-cyan-400 mb-1">🎯 تحدي الهدف بالساعات</h2>
+                        <p id="goal-desc" class="text-slate-400 text-xs mb-2">حدد الهدف العام وحد الترحيل التلقائي للعداد (بالساعات، للمنشئ فقط).</p>
                     </div>
-                    <div id="goal-container" class="flex items-center gap-2">
-                        <input type="number" id="weekly-goal-input" min="1" value="20" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white w-24 text-center font-bold">
-                        <span class="text-sm text-slate-300">ساعة</span>
-                        <button id="btn-save-goal" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition">حفظ الهدف</button>
+                    <div class="space-y-2">
+                        <div id="goal-container" class="flex flex-wrap items-center gap-2">
+                            <input type="number" id="weekly-goal-input" min="1" value="20" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white w-20 text-center font-bold text-sm">
+                            <span class="text-xs text-slate-300">ساعة هدف</span>
+                            <input type="number" id="auto-chunk-hours-input" min="0.1" step="0.1" value="7" title="حد الترحيل التلقائي للعداد" class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-amber-300 w-20 text-center font-bold text-sm">
+                            <span class="text-xs text-amber-300">ترحيل كل (ساعة)</span>
+                            <button id="btn-save-goal" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition">حفظ الهدف</button>
+                        </div>
+                        <p id="chunk-info-text" class="text-[11px] text-amber-400/90">الترحيل التلقائي مضبوط على: 7 ساعات</p>
                     </div>
+                </div>
+
+                <!-- Deadline Race Card (Parallel Challenge in Same Room) -->
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-indigo-500/30 flex flex-col justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-amber-400 mb-1">⏳ تحدي الموعد المحدد</h2>
+                        <p id="deadline-desc" class="text-slate-400 text-xs mb-3">يحدد المنشئ تاريخاً ووقتاً، وعند حلوله يفوز صاحب أعلى ساعات (للمنشئ فقط).</p>
+                    </div>
+                    <div id="deadline-container" class="flex flex-wrap items-center gap-2">
+                        <input type="datetime-local" id="deadline-date-input" class="bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-2 text-white text-xs flex-1">
+                        <button id="btn-save-deadline" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-3 py-2 rounded-lg text-sm transition">حفظ التاريخ</button>
+                    </div>
+                    <p id="deadline-status-text" class="text-[11px] text-slate-400 mt-2">لم يتم تحديد موعد للتحدي الزمني بعد.</p>
                 </div>
 
                 <!-- Join/Add Competitor Form -->
@@ -234,6 +252,7 @@
             document.getElementById('btn-create-room').addEventListener('click', createRoom);
             document.getElementById('btn-join-room').addEventListener('click', joinRoom);
             document.getElementById('btn-save-goal').addEventListener('click', updateGoal);
+            document.getElementById('btn-save-deadline').addEventListener('click', updateDeadline);
             document.getElementById('btn-add-competitor').addEventListener('click', addCompetitor);
             document.getElementById('toggle-past-hours').addEventListener('change', togglePastHoursSetting);
             document.getElementById('timer-mode').addEventListener('change', toggleTimerMode);
@@ -278,6 +297,9 @@
             
             set(ref(db, 'rooms/' + currentRoom), {
                 goal: 20,
+                chunkHours: 7,
+                deadlineAt: null,
+                deadlineLocked: false,
                 creatorId: currentUserId,
                 goalLocked: false,
                 allowPastHours: true,
@@ -313,6 +335,9 @@
                 if (!data) {
                     set(roomRef, {
                         goal: 20,
+                        chunkHours: 7,
+                        deadlineAt: null,
+                        deadlineLocked: false,
                         creatorId: currentUserId,
                         goalLocked: false,
                         allowPastHours: true,
@@ -365,15 +390,41 @@
             get(roomRef).then((snapshot) => {
                 const data = snapshot.val();
                 if (data && data.goalLocked) {
-                    alert('عذراً، تم قفل الهدف الأسبوعي ولا يمكن تعديله!');
+                    alert('عذراً، تم قفل الهدف وعدد ساعات الترحيل ولا يمكن تعديلهما إلا بعد انتهاء التحدي!');
                     return;
                 }
                 const newGoal = parseFloat(document.getElementById('weekly-goal-input').value) || 20;
+                const chunkVal = parseFloat(document.getElementById('auto-chunk-hours-input').value);
+                const newChunkHours = (!Number.isNaN(chunkVal) && chunkVal > 0) ? chunkVal : 7;
                 update(roomRef, {
                     goal: newGoal,
+                    chunkHours: newChunkHours,
                     goalLocked: true,
                     creatorId: (data && data.creatorId) || currentUserId,
                     allowPastHours: typeof (data && data.allowPastHours) === 'boolean' ? data.allowPastHours : true
+                });
+            });
+        }
+
+        function updateDeadline() {
+            if (!currentRoom) return;
+            const roomRef = ref(db, `rooms/${currentRoom}`);
+            get(roomRef).then((snapshot) => {
+                const data = snapshot.val();
+                if (data && data.deadlineLocked) {
+                    alert('عذراً، تم قفل تاريخ التحدي الزمني ولا يمكن تعديله إلا بعد انتهاء التحدي وتصفير العداد!');
+                    return;
+                }
+                const rawDate = document.getElementById('deadline-date-input').value;
+                const ts = Date.parse(rawDate);
+                if (!rawDate || Number.isNaN(ts)) {
+                    alert('الرجاء اختيار تاريخ ووقت صحيح للتحدي.');
+                    return;
+                }
+                update(roomRef, {
+                    deadlineAt: ts,
+                    deadlineLocked: true,
+                    creatorId: (data && data.creatorId) || currentUserId
                 });
             });
         }
@@ -527,10 +578,11 @@
 
                 const competitorsObj = data.competitors || {};
                 const goal = data.goal || 20;
-                const hasWinner = Object.values(competitorsObj).some(c => (c.hours || 0) >= goal);
+                const hasGoalWinner = Object.values(competitorsObj).some(c => (c.hours || 0) >= goal);
+                const deadlineReached = typeof data.deadlineAt === 'number' && Date.now() >= data.deadlineAt;
 
-                if (!hasWinner) {
-                    alert('لا يمكن تصفير الغرفة لعدم وصول أي شخص للهدف بعد!');
+                if (!hasGoalWinner && !deadlineReached) {
+                    alert('لا يمكن تصفير الغرفة قبل وصول شخص للهدف أو حلول الموعد المحدد للتحدي الزمني!');
                     return;
                 }
 
@@ -538,12 +590,16 @@
                 Object.keys(competitorsObj).forEach(name => {
                     resetCompetitors[name] = {
                         hours: 0,
+                        deadlineHours: 0,
+                        isStudying: false,
                         joinedAt: competitorsObj[name].joinedAt || Date.now()
                     };
                 });
 
                 update(roomRef, {
                     goalLocked: false,
+                    deadlineAt: null,
+                    deadlineLocked: false,
                     competitors: resetCompetitors,
                     announcements: null
                 }).then(() => {
@@ -593,10 +649,12 @@
                 mode,
                 targetSeconds,
                 accumulatedSeconds: 0,
+                creditedChunkSeconds: 0,
                 lastResumeTime: Date.now(),
                 isPaused: false
             };
             persistSession(timerSessionData);
+            setCompetitorStudyingState(name, true);
 
             document.getElementById('btn-start-session').classList.add('hidden');
             document.getElementById('active-timer-box').classList.remove('hidden');
@@ -616,10 +674,12 @@
                     clearInterval(activeTimerInterval);
                     activeTimerInterval = null;
                 }
+                setCompetitorStudyingState(timerSessionData.name, false);
             } else {
                 timerSessionData.lastResumeTime = Date.now();
                 timerSessionData.isPaused = false;
                 startTimerInterval();
+                setCompetitorStudyingState(timerSessionData.name, true);
             }
 
             persistSession(timerSessionData);
@@ -652,9 +712,45 @@
             }, 1000);
         }
 
+        function checkAndCreditAutoChunks(elapsedSecs) {
+            if (!timerSessionData) return elapsedSecs;
+            const chunkHours = (currentRoomData && typeof currentRoomData.chunkHours === 'number' && currentRoomData.chunkHours > 0)
+                ? currentRoomData.chunkHours
+                : 7;
+            const chunkSeconds = Math.max(1, Math.round(chunkHours * 3600));
+            const alreadyCredited = timerSessionData.creditedChunkSeconds || 0;
+            const uncreditedElapsed = Math.max(0, elapsedSecs - alreadyCredited);
+            const completedChunks = Math.floor(uncreditedElapsed / chunkSeconds);
+
+            if (completedChunks <= 0) return elapsedSecs;
+
+            const deltaChunkSecs = completedChunks * chunkSeconds;
+            const hoursToCredit = parseFloat((deltaChunkSecs / 3600).toFixed(2));
+            if (hoursToCredit > 0) {
+                addHoursToDatabase(timerSessionData.name, hoursToCredit);
+            }
+
+            timerSessionData.creditedChunkSeconds = alreadyCredited + deltaChunkSecs;
+
+            if (timerSessionData.mode === 'stopwatch') {
+                const newElapsed = Math.max(0, elapsedSecs - deltaChunkSecs);
+                timerSessionData.accumulatedSeconds = newElapsed;
+                timerSessionData.creditedChunkSeconds = 0;
+                if (!timerSessionData.isPaused) {
+                    timerSessionData.lastResumeTime = Date.now();
+                }
+                persistSession(timerSessionData);
+                return newElapsed;
+            }
+
+            persistSession(timerSessionData);
+            return elapsedSecs;
+        }
+
         function refreshTimerDisplay() {
             if (!timerSessionData) return;
-            const elapsedSecs = getSessionElapsedSeconds(timerSessionData);
+            let elapsedSecs = getSessionElapsedSeconds(timerSessionData);
+            elapsedSecs = checkAndCreditAutoChunks(elapsedSecs);
 
             if (timerSessionData.mode === 'stopwatch') {
                 document.getElementById('timer-display').innerText = formatTime(elapsedSecs);
@@ -670,9 +766,11 @@
 
         function cancelActiveTimer() {
             if (!timerSessionData) return;
+            const compName = timerSessionData.name;
             persistSession(null);
             timerSessionData = null;
             resetTimerUI();
+            setCompetitorStudyingState(compName, false);
         }
 
         function stopActiveTimer(completedCountdown = false) {
@@ -682,6 +780,7 @@
                 activeTimerInterval = null;
             }
 
+            const compName = timerSessionData.name;
             const elapsedSecs = getSessionElapsedSeconds(timerSessionData);
             let finalSeconds = elapsedSecs;
 
@@ -689,16 +788,18 @@
                 finalSeconds = completedCountdown
                     ? timerSessionData.targetSeconds
                     : Math.min(elapsedSecs, timerSessionData.targetSeconds);
+                finalSeconds = Math.max(0, finalSeconds - (timerSessionData.creditedChunkSeconds || 0));
             }
 
             const hoursEarned = parseFloat((finalSeconds / 3600).toFixed(2));
             if (hoursEarned > 0) {
-                addHoursToDatabase(timerSessionData.name, hoursEarned);
+                addHoursToDatabase(compName, hoursEarned);
             }
 
             persistSession(null);
             timerSessionData = null;
             resetTimerUI();
+            setCompetitorStudyingState(compName, false);
         }
 
         function resetTimerUI() {
@@ -719,30 +820,81 @@
             return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
 
+        function setCompetitorStudyingState(name, isStudying) {
+            if (!currentRoom || !name) return;
+            const compRef = ref(db, `rooms/${currentRoom}/competitors/${name}`);
+            get(compRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    update(compRef, { isStudying: Boolean(isStudying) });
+                }
+            });
+        }
+
         function addHoursToDatabase(name, hoursToAdd) {
             if (!currentRoom) return;
             const compRef = ref(db, `rooms/${currentRoom}/competitors/${name}`);
             get(compRef).then((snapshot) => {
                 if (snapshot.exists()) {
-                    const currentHours = snapshot.val().hours || 0;
+                    const val = snapshot.val();
+                    const currentHours = val.hours || 0;
                     const updatedHours = Math.max(0, parseFloat((currentHours + hoursToAdd).toFixed(2)));
-                    update(compRef, { hours: updatedHours });
+                    const currentDeadlineHours = val.deadlineHours || 0;
+                    const updatedDeadlineHours = Math.max(0, parseFloat((currentDeadlineHours + hoursToAdd).toFixed(2)));
+                    update(compRef, {
+                        hours: updatedHours,
+                        deadlineHours: updatedDeadlineHours
+                    });
                 }
             });
         }
 
         function renderApp(data) {
             const goal = data.goal || 20;
+            const chunkHours = (typeof data.chunkHours === 'number' && data.chunkHours > 0) ? data.chunkHours : 7;
             const goalInput = document.getElementById('weekly-goal-input');
+            const chunkInput = document.getElementById('auto-chunk-hours-input');
+            const chunkInfo = document.getElementById('chunk-info-text');
             goalInput.value = goal;
+            chunkInput.value = chunkHours;
+            chunkInfo.innerText = `الترحيل التلقائي مضبوط على: ${chunkHours} ساعة`;
 
             if (data.goalLocked) {
                 goalInput.disabled = true;
+                chunkInput.disabled = true;
                 document.getElementById('btn-save-goal').classList.add('hidden');
-                document.getElementById('goal-desc').innerText = "تم قفل الهدف الأسبوعي من قِبل منشئ الغرفة.";
+                document.getElementById('goal-desc').innerText = "تم قفل الهدف وعدد ساعات الترحيل من قِبل منشئ الغرفة.";
             } else {
                 goalInput.disabled = false;
+                chunkInput.disabled = false;
                 document.getElementById('btn-save-goal').classList.remove('hidden');
+            }
+
+            const deadlineInput = document.getElementById('deadline-date-input');
+            const deadlineStatus = document.getElementById('deadline-status-text');
+            const saveDeadlineBtn = document.getElementById('btn-save-deadline');
+
+            if (data.deadlineAt) {
+                const dt = new Date(data.deadlineAt);
+                const pad = n => String(n).padStart(2, '0');
+                const localIso = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+                if (document.activeElement !== deadlineInput) {
+                    deadlineInput.value = localIso;
+                }
+                const isEnded = Date.now() >= data.deadlineAt;
+                deadlineStatus.innerText = isEnded
+                    ? `انتهى الموعد (${dt.toLocaleString('ar-EG')}) — تم تحديد الفائز بأعلى ساعات!`
+                    : `ينتهي التحدي الزمني في: ${dt.toLocaleString('ar-EG')}`;
+            } else {
+                deadlineStatus.innerText = 'لم يتم تحديد موعد للتحدي الزمني بعد.';
+            }
+
+            if (data.deadlineLocked) {
+                deadlineInput.disabled = true;
+                saveDeadlineBtn.classList.add('hidden');
+                document.getElementById('deadline-desc').innerText = "تم قفل تاريخ التحدي ولا يمكن تعديله إلا بعد إنهاء التحدي وتصفير العداد.";
+            } else {
+                deadlineInput.disabled = false;
+                saveDeadlineBtn.classList.remove('hidden');
             }
 
             const isCreator = data.creatorId === currentUserId;
@@ -777,12 +929,22 @@
             const competitorsArr = Object.keys(competitorsObj).map(name => ({
                 name,
                 hours: competitorsObj[name].hours || 0,
+                deadlineHours: typeof competitorsObj[name].deadlineHours === 'number'
+                    ? competitorsObj[name].deadlineHours
+                    : (competitorsObj[name].hours || 0),
+                isStudying: Boolean(competitorsObj[name].isStudying) || (
+                    timerSessionData &&
+                    !timerSessionData.isPaused &&
+                    timerSessionData.name === name &&
+                    timerSessionData.roomCode === currentRoom
+                ),
                 joinedAt: competitorsObj[name].joinedAt || 0
             }));
 
-            const hasWinner = competitorsArr.some(c => c.hours >= goal);
+            const deadlineReached = typeof data.deadlineAt === 'number' && Date.now() >= data.deadlineAt;
+            const hasGoalWinner = competitorsArr.some(c => c.hours >= goal);
             const resetSection = document.getElementById('creator-reset-section');
-            if (isCreator && hasWinner) {
+            if (isCreator && (hasGoalWinner || deadlineReached)) {
                 resetSection.classList.remove('hidden');
             } else {
                 resetSection.classList.add('hidden');
@@ -818,9 +980,16 @@
                 return;
             }
 
+            const maxDeadlineHours = competitorsArr.reduce((max, item) => Math.max(max, item.deadlineHours), 0);
+            const timedWinnerName = (deadlineReached && maxDeadlineHours > 0)
+                ? competitorsArr.find(item => item.deadlineHours === maxDeadlineHours)?.name
+                : null;
+
             competitorsArr.forEach((c, index) => {
                 const percentage = Math.min(Math.round((c.hours / goal) * 100), 100);
-                const isWinner = c.hours >= goal;
+                const isGoalWinner = c.hours >= goal;
+                const isTimedWinner = Boolean(timedWinnerName && c.name === timedWinnerName);
+                const isWinner = isGoalWinner || isTimedWinner;
 
                 if (isWinner && index === 0 && !window.hasCelebrated) {
                     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
@@ -831,16 +1000,18 @@
                 item.className = `bg-slate-900/70 p-4 rounded-xl border ${isWinner ? 'border-emerald-500 bg-emerald-950/20' : 'border-slate-700'} flex flex-col gap-2`;
                 
                 item.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-2.5 flex-wrap">
                             <span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-amber-500 text-slate-950' : index === 1 ? 'bg-slate-300 text-slate-950' : index === 2 ? 'bg-amber-700 text-white' : 'bg-slate-800 text-slate-400'}">
                                 ${index + 1}
                             </span>
                             <span class="font-bold text-white text-base sm:text-lg">${escapeHtml(c.name)}</span>
-                            ${isWinner ? '<span class="bg-emerald-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full">🏆 الفائز بالهدف!</span>' : ''}
+                            ${c.isStudying ? '<span class="bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-xs font-bold px-2 py-0.5 rounded-full">أذاكر</span>' : ''}
+                            ${isGoalWinner ? '<span class="bg-emerald-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full">🏆 الفائز بالهدف!</span>' : ''}
+                            ${isTimedWinner ? '<span class="bg-amber-400 text-slate-950 text-xs font-black px-2 py-0.5 rounded-full">⏳ فائز التحدي الزمني!</span>' : ''}
                         </div>
                         <div class="text-cyan-400 font-bold text-sm sm:text-base">
-                            ${c.hours} / ${goal} ساعة
+                            ${c.hours} / ${goal} ساعة${data.deadlineAt ? ` • تحدي الوقت: ${c.deadlineHours} س` : ''}
                         </div>
                     </div>
                     <!-- Progress Bar -->
@@ -857,4 +1028,4 @@
         }
     </script>
 </body>
-    </html>
+                    </html>
